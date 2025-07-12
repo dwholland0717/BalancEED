@@ -132,8 +132,33 @@ const AuthProvider = ({ children }) => {
 };
 
 // Components
-const Navigation = () => {
+const Navigation = ({ showBack, onBack }) => {
   const { user, logout } = useAuth();
+
+  if (!user) {
+    return (
+      <nav className="bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16">
+            <div className="flex items-center">
+              {showBack && (
+                <button
+                  onClick={onBack}
+                  className="mr-4 text-white hover:text-blue-200 transition-colors"
+                >
+                  ← Back
+                </button>
+              )}
+              <div className="flex-shrink-0">
+                <h1 className="text-2xl font-bold">BalancEDD</h1>
+                <p className="text-xs opacity-75">Youth Development Platform</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </nav>
+    );
+  }
 
   return (
     <nav className="bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg">
@@ -156,6 +181,383 @@ const Navigation = () => {
         </div>
       </div>
     </nav>
+  );
+};
+
+const AdaptiveRegistrationForm = () => {
+  const { register } = useAuth();
+  const navigate = useNavigate();
+  const [currentStep, setCurrentStep] = useState(0);
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    name: '',
+    role: 'student',
+    institution_id: 'default'
+  });
+  const [surveyData, setSurveyData] = useState({});
+  const [surveyQuestions, setSurveyQuestions] = useState(null);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const steps = [
+    'Basic Information',
+    'Academic Profile',
+    'Goals & Motivation',
+    'Wellness & Nutrition',
+    'Life Skills & Preferences'
+  ];
+
+  useEffect(() => {
+    fetchSurveyQuestions();
+  }, []);
+
+  const fetchSurveyQuestions = async () => {
+    try {
+      const response = await axios.get(`${API}/survey/questions`);
+      setSurveyQuestions(response.data);
+    } catch (error) {
+      console.error('Error fetching survey questions:', error);
+    }
+  };
+
+  const handleInputChange = (field, value) => {
+    if (currentStep === 0) {
+      setFormData(prev => ({ ...prev, [field]: value }));
+    } else {
+      setSurveyData(prev => ({ ...prev, [field]: value }));
+    }
+  };
+
+  const handleMultiSelect = (field, option, maxSelections = null) => {
+    setSurveyData(prev => {
+      const current = prev[field] || [];
+      const isSelected = current.includes(option);
+      
+      if (isSelected) {
+        return { ...prev, [field]: current.filter(item => item !== option) };
+      } else {
+        if (maxSelections && current.length >= maxSelections) {
+          return prev; // Don't add if at max
+        }
+        return { ...prev, [field]: [...current, option] };
+      }
+    });
+  };
+
+  const isStepValid = () => {
+    if (currentStep === 0) {
+      return formData.email && formData.password && formData.name;
+    }
+    
+    if (!surveyQuestions) return true;
+    
+    const stepQuestions = {
+      1: surveyQuestions.academic,
+      2: surveyQuestions.goals,
+      3: [...surveyQuestions.wellness, ...surveyQuestions.nutrition],
+      4: [...surveyQuestions.life_skills, ...surveyQuestions.preferences]
+    };
+    
+    const currentQuestions = stepQuestions[currentStep] || [];
+    const requiredQuestions = currentQuestions.filter(q => q.required);
+    
+    return requiredQuestions.every(q => {
+      const value = surveyData[q.id];
+      return value !== undefined && value !== null && 
+             (Array.isArray(value) ? value.length > 0 : value !== '');
+    });
+  };
+
+  const nextStep = () => {
+    if (currentStep < steps.length - 1) {
+      setCurrentStep(currentStep + 1);
+    } else {
+      submitRegistration();
+    }
+  };
+
+  const prevStep = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const submitRegistration = async () => {
+    setLoading(true);
+    setError('');
+
+    try {
+      // Create survey responses
+      const surveyResponses = [];
+      Object.entries(surveyData).forEach(([questionId, response]) => {
+        surveyResponses.push({
+          question_id: questionId,
+          question_text: `Survey response for ${questionId}`,
+          response: response
+        });
+      });
+
+      // Prepare registration data
+      const registrationData = {
+        ...formData,
+        profile_data: surveyData,
+        survey_responses: surveyResponses
+      };
+
+      const result = await register(registrationData);
+      
+      if (result.success) {
+        navigate('/', { replace: true });
+      } else {
+        setError(result.error);
+      }
+    } catch (error) {
+      setError('Registration failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const renderBasicInfo = () => (
+    <div className="space-y-6">
+      <div className="text-center mb-8">
+        <h2 className="text-3xl font-bold text-gray-900 mb-2">Join BalancEDD</h2>
+        <p className="text-gray-600">Let's start with your basic information</p>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+        <input
+          type="text"
+          value={formData.name}
+          onChange={(e) => handleInputChange('name', e.target.value)}
+          className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+          placeholder="Enter your full name"
+          required
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+        <input
+          type="email"
+          value={formData.email}
+          onChange={(e) => handleInputChange('email', e.target.value)}
+          className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+          placeholder="Enter your email address"
+          required
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+        <input
+          type="password"
+          value={formData.password}
+          onChange={(e) => handleInputChange('password', e.target.value)}
+          className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+          placeholder="Create a secure password"
+          required
+        />
+      </div>
+    </div>
+  );
+
+  const renderQuestion = (question) => {
+    const value = surveyData[question.id];
+
+    switch (question.type) {
+      case 'select':
+        return (
+          <div key={question.id} className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              {question.question}
+              {question.required && <span className="text-red-500 ml-1">*</span>}
+            </label>
+            <select
+              value={value || ''}
+              onChange={(e) => handleInputChange(question.id, e.target.value)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">Select an option...</option>
+              {question.options.map((option, index) => (
+                <option key={index} value={option.toLowerCase().replace(/\s+/g, '_')}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+        );
+
+      case 'multi_select':
+        const selectedValues = value || [];
+        return (
+          <div key={question.id} className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              {question.question}
+              {question.required && <span className="text-red-500 ml-1">*</span>}
+              {question.max_selections && (
+                <span className="text-gray-500 ml-2">
+                  (Select up to {question.max_selections})
+                </span>
+              )}
+            </label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {question.options.map((option, index) => {
+                const optionValue = option.toLowerCase().replace(/\s+/g, '_');
+                const isSelected = selectedValues.includes(optionValue);
+                return (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => handleMultiSelect(question.id, optionValue, question.max_selections)}
+                    className={`text-left p-3 border rounded-md transition-colors ${
+                      isSelected 
+                        ? 'bg-blue-50 border-blue-500 text-blue-700' 
+                        : 'bg-white border-gray-300 hover:border-gray-400'
+                    }`}
+                  >
+                    <span className="flex items-center">
+                      <span className={`w-4 h-4 mr-2 rounded border ${
+                        isSelected ? 'bg-blue-500 border-blue-500' : 'border-gray-300'
+                      }`}>
+                        {isSelected && <span className="block w-full h-full text-white text-xs leading-4 text-center">✓</span>}
+                      </span>
+                      {option}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+
+      case 'scale':
+        return (
+          <div key={question.id} className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              {question.question}
+              {question.required && <span className="text-red-500 ml-1">*</span>}
+            </label>
+            <div className="px-3">
+              <input
+                type="range"
+                min={question.scale.min}
+                max={question.scale.max}
+                value={value || question.scale.min}
+                onChange={(e) => handleInputChange(question.id, parseInt(e.target.value))}
+                className="w-full"
+              />
+              <div className="flex justify-between text-sm text-gray-600 mt-1">
+                <span>{question.scale.labels[question.scale.min]}</span>
+                <span className="font-medium text-blue-600">
+                  {value || question.scale.min}
+                </span>
+                <span>{question.scale.labels[question.scale.max]}</span>
+              </div>
+            </div>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  const renderCurrentStep = () => {
+    if (currentStep === 0) {
+      return renderBasicInfo();
+    }
+
+    if (!surveyQuestions) {
+      return <div className="text-center">Loading questions...</div>;
+    }
+
+    const stepQuestions = {
+      1: { title: 'Academic Profile', questions: surveyQuestions.academic },
+      2: { title: 'Goals & Motivation', questions: surveyQuestions.goals },
+      3: { title: 'Wellness & Nutrition', questions: [...surveyQuestions.wellness, ...surveyQuestions.nutrition] },
+      4: { title: 'Life Skills & Preferences', questions: [...surveyQuestions.life_skills, ...surveyQuestions.preferences] }
+    };
+
+    const currentStepData = stepQuestions[currentStep];
+    
+    return (
+      <div className="space-y-6">
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">{currentStepData.title}</h2>
+          <p className="text-gray-600">Help us personalize your BalancEDD experience</p>
+        </div>
+        
+        {currentStepData.questions.map(renderQuestion)}
+      </div>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600">
+      <Navigation showBack={currentStep > 0} onBack={prevStep} />
+      
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        {/* Progress Bar */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-2">
+            {steps.map((step, index) => (
+              <div key={index} className="flex items-center">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                  index <= currentStep 
+                    ? 'bg-white text-blue-600' 
+                    : 'bg-blue-300 text-white'
+                }`}>
+                  {index + 1}
+                </div>
+                {index < steps.length - 1 && (
+                  <div className={`hidden sm:block w-12 lg:w-24 h-1 mx-2 ${
+                    index < currentStep ? 'bg-white' : 'bg-blue-300'
+                  }`} />
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="text-center">
+            <p className="text-white text-sm">{steps[currentStep]}</p>
+          </div>
+        </div>
+
+        {/* Form Content */}
+        <div className="bg-white rounded-lg shadow-xl p-8">
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+              {error}
+            </div>
+          )}
+
+          {renderCurrentStep()}
+
+          {/* Navigation Buttons */}
+          <div className="flex justify-between pt-6 mt-6 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={prevStep}
+              disabled={currentStep === 0}
+              className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+            
+            <button
+              type="button"
+              onClick={nextStep}
+              disabled={!isStepValid() || loading}
+              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Creating Account...' : currentStep === steps.length - 1 ? 'Complete Registration' : 'Next'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 
@@ -184,6 +586,48 @@ const ProgressBar = ({ percentage, color = "bg-blue-500" }) => (
     ></div>
   </div>
 );
+
+const RecommendationCard = ({ recommendation }) => {
+  const categoryColors = {
+    academic: 'border-blue-500 bg-blue-50',
+    wellness: 'border-green-500 bg-green-50',
+    nutrition: 'border-orange-500 bg-orange-50',
+    life_skills: 'border-purple-500 bg-purple-50'
+  };
+
+  const categoryIcons = {
+    academic: '📚',
+    wellness: '🧘',
+    nutrition: '🥗',
+    life_skills: '🛠️'
+  };
+
+  return (
+    <div className={`border-l-4 p-4 rounded-r-lg ${categoryColors[recommendation.category] || 'border-gray-500 bg-gray-50'}`}>
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <div className="flex items-center mb-2">
+            <span className="text-lg mr-2">{categoryIcons[recommendation.category]}</span>
+            <h4 className="font-semibold text-gray-900">{recommendation.title}</h4>
+          </div>
+          <p className="text-sm text-gray-700 mb-2">{recommendation.description}</p>
+          <div className="flex flex-wrap gap-1">
+            {recommendation.personalization_reasons?.map((reason, index) => (
+              <span key={index} className="text-xs bg-white bg-opacity-60 px-2 py-1 rounded">
+                {reason}
+              </span>
+            ))}
+          </div>
+        </div>
+        <div className="ml-2">
+          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white">
+            Priority {recommendation.priority}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const StudentDashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
@@ -256,32 +700,37 @@ const StudentDashboard = () => {
     );
   }
 
-  const { stats, plan, recent_progress, recent_journals, life_skills } = dashboardData;
+  const { stats, plan, recommendations, recent_progress, recent_journals, life_skills, profile } = dashboardData;
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Navigation />
       
-      {/* Hero Section */}
+      {/* Enhanced Hero Section with Personalization */}
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
             <div>
-              <h1 className="text-4xl font-bold mb-4">Your BalancEDD Journey</h1>
+              <h1 className="text-4xl font-bold mb-4">Your Personalized BalancEDD Journey</h1>
               <p className="text-xl opacity-90 mb-6">
-                Track your progress across education, wellness, nutrition, and life skills
+                Customized for your {profile?.learning_style} learning style and personal goals
               </p>
               {plan && (
                 <div className="bg-white bg-opacity-20 rounded-lg p-4">
                   <h3 className="font-semibold mb-2">{plan.title}</h3>
-                  <p className="text-sm opacity-90">{plan.description}</p>
+                  <p className="text-sm opacity-90 mb-2">{plan.description}</p>
+                  {plan.personalized && (
+                    <div className="text-xs opacity-75">
+                      ✨ {plan.customization_reasons?.join(', ')}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
             <div className="hidden lg:block">
               <img 
-                src="https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzF8MHwxfHNlYXJjaHwxfHxkaXZlcnNlJTIwc3R1ZGVudHN8ZW58MHx8fHwxNzUyMjkxMzI5fDA&ixlib=rb-4.1.0&q=85"
-                alt="Diverse students"
+                src="https://images.pexels.com/photos/5212695/pexels-photo-5212695.jpeg"
+                alt="Students collaborating"
                 className="rounded-lg shadow-2xl w-full h-64 object-cover"
               />
             </div>
@@ -290,6 +739,18 @@ const StudentDashboard = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        {/* Personalized Recommendations Section */}
+        {recommendations && recommendations.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">🎯 Personalized for You</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {recommendations.slice(0, 4).map((rec, index) => (
+                <RecommendationCard key={index} recommendation={rec} />
+              ))}
+            </div>
+          </div>
+        )}
         
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -492,9 +953,14 @@ const StudentDashboard = () => {
                       )}
                     </div>
                     <p className="text-sm text-gray-600 mb-2">{skill.description}</p>
-                    <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
-                      {skill.skill_category.replace('_', ' ')}
-                    </span>
+                    <div className="flex justify-between items-center">
+                      <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
+                        {skill.skill_category.replace('_', ' ')}
+                      </span>
+                      {skill.personalized && (
+                        <span className="text-xs text-purple-600">✨ Personalized</span>
+                      )}
+                    </div>
                     {skill.notes && (
                       <p className="text-xs text-gray-500 mt-2">{skill.notes}</p>
                     )}
@@ -736,7 +1202,7 @@ const LoginForm = () => {
             </button>
           </form>
           
-          <div className="mt-6 text-center">
+          <div className="mt-6 text-center space-y-4">
             <button
               onClick={handleDemoSetup}
               disabled={loading}
@@ -744,6 +1210,16 @@ const LoginForm = () => {
             >
               {loading ? 'Setting up demo...' : 'Try Demo Account'}
             </button>
+            
+            <div className="text-center">
+              <span className="text-gray-500 text-sm">New to BalancEDD? </span>
+              <button
+                onClick={() => navigate('/register')}
+                className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+              >
+                Create Account
+              </button>
+            </div>
           </div>
           
           <div className="mt-4 text-center text-sm text-gray-600">
@@ -777,6 +1253,7 @@ function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<LoginForm />} />
+            <Route path="/register" element={<AdaptiveRegistrationForm />} />
             <Route path="/" element={
               <ProtectedRoute>
                 <StudentDashboard />
