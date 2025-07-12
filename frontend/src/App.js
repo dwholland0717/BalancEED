@@ -249,8 +249,12 @@ const AdaptiveRegistrationForm = () => {
       console.log('✅ Survey questions set in state');
     } catch (error) {
       console.error('❌ Error fetching survey questions:', error);
+      console.error('❌ Error response:', error.response?.data);
+      console.error('❌ Error status:', error.response?.status);
       setError('Failed to load survey questions. Please refresh the page.');
+      
       // Set dummy questions as fallback
+      console.log('🔄 Setting fallback questions');
       setSurveyQuestions({
         academic: [{
           id: "grade_level",
