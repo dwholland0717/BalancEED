@@ -749,7 +749,8 @@ const ProtectedRoute = ({ children }) => {
     );
   }
 
-  return user ? children : <Navigate to="/login" />;
+  console.log('🛡️ ProtectedRoute - User:', user ? 'Authenticated' : 'Not authenticated');
+  return user ? children : <Navigate to="/login" replace />;
 };
 
 function App() {
