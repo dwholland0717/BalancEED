@@ -630,7 +630,7 @@ const NutritionForm = ({ onSubmit }) => {
 };
 
 const LoginForm = () => {
-  const { login } = useAuth();
+  const { login, setupDemo } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -641,24 +641,31 @@ const LoginForm = () => {
     setLoading(true);
     setError('');
     
+    console.log('📤 Submitting login form');
     const result = await login(email, password);
+    
     if (!result.success) {
+      console.error('❌ Login failed:', result.error);
       setError(result.error);
+    } else {
+      console.log('✅ Login successful, redirecting...');
     }
     setLoading(false);
   };
 
-  const setupDemo = async () => {
-    try {
-      await axios.post(`${API}/demo/setup`);
-      // Auto-login with demo credentials
-      const result = await login('student@demo.com', 'demo123');
-      if (!result.success) {
-        setError('Demo setup failed');
-      }
-    } catch (error) {
-      setError('Failed to setup demo data');
+  const handleDemoSetup = async () => {
+    setLoading(true);
+    setError('');
+    console.log('🎭 Demo button clicked');
+    
+    const result = await setupDemo();
+    if (!result.success) {
+      console.error('❌ Demo setup failed:', result.error);
+      setError(result.error || 'Demo setup failed');
+    } else {
+      console.log('✅ Demo setup successful');
     }
+    setLoading(false);
   };
 
   return (
