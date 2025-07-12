@@ -86,7 +86,7 @@ class BalancEDDPlan(BaseModel):
 
 class ProgressEntry(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    student_id: str
+    student_id: Optional[str] = None
     category: str  # "academic", "wellness", "nutrition", "life_skills"
     type: str  # "module_completion", "journal_entry", "meal_log", "skill_completion"
     title: str
