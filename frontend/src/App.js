@@ -233,6 +233,7 @@ const AdaptiveRegistrationForm = () => {
   }, []);
 
   const fetchSurveyQuestions = async () => {
+    setQuestionsLoading(true);
     try {
       console.log('🔄 Fetching survey questions from:', `${API}/survey/questions`);
       const response = await axios.get(`${API}/survey/questions`);
