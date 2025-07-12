@@ -2856,6 +2856,26 @@ function App() {
             <Route path="/login" element={<LoginForm />} />
             <Route path="/register" element={<AdaptiveRegistrationForm />} />
             <Route path="/launch" element={<LaunchPage />} />
+            <Route path="/language-learning" element={
+              <ProtectedRoute>
+                <LanguageLearningDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/asvab-prep" element={
+              <ProtectedRoute>
+                <ASVABPreparation />
+              </ProtectedRoute>
+            } />
+            <Route path="/career-assessment" element={
+              <ProtectedRoute>
+                <CareerAssessment />
+              </ProtectedRoute>
+            } />
+            <Route path="/opportunities" element={
+              <ProtectedRoute>
+                <LocalOpportunities />
+              </ProtectedRoute>
+            } />
             <Route path="/brain-training" element={
               <ProtectedRoute>
                 <BrainTrainingDashboard />
