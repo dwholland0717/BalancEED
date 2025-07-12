@@ -983,7 +983,356 @@ const ChatRoomsDashboard = () => {
   );
 };
 
-// Business Pages
+// Launch/Landing Page
+const LaunchPage = () => {
+  const navigate = useNavigate();
+  const [activeFeature, setActiveFeature] = useState(0);
+
+  const features = [
+    {
+      icon: "🧠",
+      title: "Brain Training Center",
+      description: "Cognitive enhancement through interactive games and exercises",
+      details: "Strengthen memory, focus, problem-solving, and critical thinking with scientifically-designed brain training exercises. Track your cognitive growth with progressive difficulty levels.",
+      color: "from-purple-500 to-blue-500"
+    },
+    {
+      icon: "🔧",
+      title: "Trade Learning Pathways",
+      description: "Industry certifications and practical skills development",
+      details: "Master real-world trade skills through structured learning paths. Build expertise in automotive, healthcare, technology, construction, and more with certification tracking.",
+      color: "from-green-500 to-blue-500"
+    },
+    {
+      icon: "💬",
+      title: "Interactive Study Groups",
+      description: "Real-time collaboration and peer learning",
+      details: "Connect with peers in topic-based chat rooms. Collaborate on projects, share knowledge, and build lasting study partnerships in a safe, moderated environment.",
+      color: "from-pink-500 to-purple-500"
+    },
+    {
+      icon: "🧘",
+      title: "Wellness & Life Skills",
+      description: "Holistic development for mind, body, and spirit",
+      details: "Track mood, nutrition, and personal growth. Develop essential life skills including financial literacy, time management, and emotional intelligence.",
+      color: "from-orange-500 to-red-500"
+    }
+  ];
+
+  const stats = [
+    { number: "10,000+", label: "Students Served" },
+    { number: "95%", label: "Success Rate" },
+    { number: "50+", label: "Skills Taught" },
+    { number: "24/7", label: "Platform Access" }
+  ];
+
+  const testimonials = [
+    {
+      name: "Maria Rodriguez",
+      role: "Program Graduate",
+      photo: "👩‍🎓",
+      quote: "BalancEDD transformed my life. The brain training improved my focus, and the trade pathway gave me real skills. I'm now pursuing computer science in college!"
+    },
+    {
+      name: "James Thompson",
+      role: "Current Student",
+      photo: "👨‍🔧",
+      quote: "The automotive program is incredible. I'm learning practical skills that will help me get certified. The chat rooms help me connect with other students too."
+    },
+    {
+      name: "Sarah Kim",
+      role: "Parent",
+      photo: "👩‍💼",
+      quote: "My daughter has grown so much through BalancEDD. Her confidence has improved, and she's discovered her passion for healthcare. Thank you!"
+    }
+  ];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveFeature((prev) => (prev + 1) % features.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-white">
+      {/* Navigation */}
+      <nav className="bg-white shadow-sm sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center">
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                BalancEDD
+              </h1>
+              <span className="ml-2 text-sm text-gray-600">Youth Development Platform</span>
+            </div>
+            <div className="flex items-center space-x-4">
+              <Link to="/login" className="text-gray-600 hover:text-blue-600">Sign In</Link>
+              <button
+                onClick={() => navigate('/register')}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Get Started Free
+              </button>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      {/* Hero Section */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-white to-purple-50 py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <h1 className="text-5xl lg:text-6xl font-bold text-gray-900 mb-6">
+                Transform Young Lives Through
+                <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  {" "}Comprehensive Development
+                </span>
+              </h1>
+              <p className="text-xl text-gray-600 mb-8">
+                The most advanced youth development platform combining brain training, trade skills, 
+                wellness tracking, and peer collaboration - all in one integrated experience.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 mb-8">
+                <button
+                  onClick={() => navigate('/register')}
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:shadow-lg transition-all transform hover:scale-105"
+                >
+                  Start Your Journey Free
+                </button>
+                <button
+                  onClick={() => navigate('/login')}
+                  className="border-2 border-blue-600 text-blue-600 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-blue-50 transition-colors"
+                >
+                  Try Demo Account
+                </button>
+              </div>
+              <div className="flex items-center text-sm text-gray-500">
+                <span>✅ No credit card required</span>
+                <span className="mx-2">•</span>
+                <span>✅ Instant access</span>
+                <span className="mx-2">•</span>
+                <span>✅ Full features</span>
+              </div>
+            </div>
+            <div className="relative">
+              <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl p-1">
+                <div className="bg-white rounded-xl p-6">
+                  <img 
+                    src="https://images.pexels.com/photos/5212695/pexels-photo-5212695.jpeg"
+                    alt="Students learning together"
+                    className="w-full h-64 object-cover rounded-lg mb-4"
+                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center p-3 bg-blue-50 rounded-lg">
+                      <div className="text-2xl mb-1">🧠</div>
+                      <div className="text-sm font-medium">Brain Training</div>
+                    </div>
+                    <div className="text-center p-3 bg-green-50 rounded-lg">
+                      <div className="text-2xl mb-1">🔧</div>
+                      <div className="text-sm font-medium">Trade Skills</div>
+                    </div>
+                    <div className="text-center p-3 bg-purple-50 rounded-lg">
+                      <div className="text-2xl mb-1">💬</div>
+                      <div className="text-sm font-medium">Study Groups</div>
+                    </div>
+                    <div className="text-center p-3 bg-orange-50 rounded-lg">
+                      <div className="text-2xl mb-1">🧘</div>
+                      <div className="text-sm font-medium">Wellness</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Stats Section */}
+      <section className="py-16 bg-gray-900 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
+            {stats.map((stat, index) => (
+              <div key={index} className="text-center">
+                <div className="text-4xl lg:text-5xl font-bold mb-2">{stat.number}</div>
+                <div className="text-gray-300">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              Everything You Need for Youth Development
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Our comprehensive platform integrates cognitive training, practical skills, 
+              social learning, and personal wellness into one seamless experience.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div>
+              {features.map((feature, index) => (
+                <div
+                  key={index}
+                  className={`p-6 rounded-xl mb-4 cursor-pointer transition-all ${
+                    activeFeature === index
+                      ? 'bg-gradient-to-r ' + feature.color + ' text-white shadow-xl transform scale-105'
+                      : 'bg-gray-50 hover:bg-gray-100'
+                  }`}
+                  onClick={() => setActiveFeature(index)}
+                >
+                  <div className="flex items-center mb-3">
+                    <span className="text-3xl mr-4">{feature.icon}</span>
+                    <h3 className="text-xl font-semibold">{feature.title}</h3>
+                  </div>
+                  <p className={`text-sm ${activeFeature === index ? 'text-white' : 'text-gray-600'} mb-2`}>
+                    {feature.description}
+                  </p>
+                  {activeFeature === index && (
+                    <p className="text-sm text-white opacity-90">
+                      {feature.details}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="relative">
+              <div className={`bg-gradient-to-r ${features[activeFeature].color} rounded-2xl p-8 text-white`}>
+                <div className="text-6xl mb-6 text-center">{features[activeFeature].icon}</div>
+                <h3 className="text-2xl font-bold mb-4">{features[activeFeature].title}</h3>
+                <p className="text-lg opacity-90 mb-6">{features[activeFeature].details}</p>
+                <div className="bg-white bg-opacity-20 rounded-lg p-4">
+                  <div className="text-sm font-medium mb-2">Key Benefits:</div>
+                  <ul className="text-sm space-y-1">
+                    <li>✅ Personalized learning paths</li>
+                    <li>✅ Real-time progress tracking</li>
+                    <li>✅ Peer collaboration tools</li>
+                    <li>✅ Expert curriculum design</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials Section */}
+      <section className="py-20 bg-gradient-to-r from-blue-50 to-purple-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">Success Stories</h2>
+            <p className="text-xl text-gray-600">Hear from students and families whose lives have been transformed</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {testimonials.map((testimonial, index) => (
+              <div key={index} className="bg-white rounded-xl shadow-lg p-8 hover:shadow-xl transition-shadow">
+                <div className="text-center mb-6">
+                  <div className="text-4xl mb-3">{testimonial.photo}</div>
+                  <h4 className="font-semibold text-gray-900">{testimonial.name}</h4>
+                  <p className="text-gray-600 text-sm">{testimonial.role}</p>
+                </div>
+                <blockquote className="text-gray-700 italic">
+                  "{testimonial.quote}"
+                </blockquote>
+                <div className="flex justify-center mt-4">
+                  <div className="flex text-yellow-400">
+                    ⭐⭐⭐⭐⭐
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-4xl font-bold mb-6">Ready to Transform Your Future?</h2>
+          <p className="text-xl mb-8 opacity-90">
+            Join thousands of students who are building brighter futures through comprehensive development.
+            Start your journey today - completely free.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <button
+              onClick={() => navigate('/register')}
+              className="bg-white text-blue-600 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-100 transition-colors"
+            >
+              Create Free Account
+            </button>
+            <button
+              onClick={() => navigate('/login')}
+              className="border-2 border-white text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors"
+            >
+              Try Demo Now
+            </button>
+          </div>
+          <div className="mt-8 text-sm opacity-75">
+            No commitment required • Full access to all features • Join in under 60 seconds
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-gray-900 text-white py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div>
+              <h3 className="text-xl font-bold mb-4">BalancEDD</h3>
+              <p className="text-gray-400 mb-4">
+                Comprehensive youth development through integrated learning experiences.
+              </p>
+              <div className="flex space-x-4">
+                <a href="#" className="text-gray-400 hover:text-white">📘</a>
+                <a href="#" className="text-gray-400 hover:text-white">🐦</a>
+                <a href="#" className="text-gray-400 hover:text-white">📷</a>
+                <a href="#" className="text-gray-400 hover:text-white">💼</a>
+              </div>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-4">Platform</h4>
+              <ul className="space-y-2 text-gray-400">
+                <li><Link to="/brain-training" className="hover:text-white">Brain Training</Link></li>
+                <li><Link to="/trade-learning" className="hover:text-white">Trade Learning</Link></li>
+                <li><Link to="/chat-rooms" className="hover:text-white">Study Groups</Link></li>
+                <li><a href="#" className="hover:text-white">Wellness Tracking</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-4">Support</h4>
+              <ul className="space-y-2 text-gray-400">
+                <li><Link to="/contact" className="hover:text-white">Contact Us</Link></li>
+                <li><a href="#" className="hover:text-white">Help Center</a></li>
+                <li><a href="#" className="hover:text-white">Student Resources</a></li>
+                <li><a href="#" className="hover:text-white">Parent Guide</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-4">Organization</h4>
+              <ul className="space-y-2 text-gray-400">
+                <li><Link to="/donate" className="hover:text-white">Donate</Link></li>
+                <li><a href="#" className="hover:text-white">Partnerships</a></li>
+                <li><a href="#" className="hover:text-white">Careers</a></li>
+                <li><a href="#" className="hover:text-white">About Us</a></li>
+              </ul>
+            </div>
+          </div>
+          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
+            <p>&copy; 2025 BalancEDD Solutions. All rights reserved. 501(c)(3) Nonprofit Organization.</p>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+};
 const DonatePage = () => {
   const [donationAmount, setDonationAmount] = useState('25');
   const [customAmount, setCustomAmount] = useState('');
