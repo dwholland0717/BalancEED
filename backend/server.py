@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, status
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, WebSocket, WebSocketDisconnect
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -14,6 +14,7 @@ import jwt
 from passlib.context import CryptContext
 import bcrypt
 from bson import ObjectId
+import json
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -28,6 +29,33 @@ app = FastAPI()
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
+
+# WebSocket connection manager for chat rooms
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: Dict[str, List[WebSocket]] = {}
+
+    async def connect(self, websocket: WebSocket, room_id: str):
+        await websocket.accept()
+        if room_id not in self.active_connections:
+            self.active_connections[room_id] = []
+        self.active_connections[room_id].append(websocket)
+
+    def disconnect(self, websocket: WebSocket, room_id: str):
+        if room_id in self.active_connections:
+            self.active_connections[room_id].remove(websocket)
+            if not self.active_connections[room_id]:
+                del self.active_connections[room_id]
+
+    async def send_personal_message(self, message: str, websocket: WebSocket):
+        await websocket.send_text(message)
+
+    async def broadcast(self, message: str, room_id: str):
+        if room_id in self.active_connections:
+            for connection in self.active_connections[room_id]:
+                await connection.send_text(message)
+
+manager = ConnectionManager()
 
 # Add your routes to the router instead of directly to app
 @api_router.get("/")
@@ -55,7 +83,7 @@ def convert_objectid(obj):
         return [convert_objectid(item) for item in obj]
     return obj
 
-# Enhanced Models for Adaptive Learning
+# Enhanced Models for Brain Training and Trade Learning
 class User(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     email: str
@@ -65,6 +93,72 @@ class User(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     is_active: bool = True
     onboarding_completed: bool = False
+    brain_training_level: int = 1
+    trade_pathway: Optional[str] = None
+    certification_progress: int = 0
+
+class BrainTrainingExercise(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    category: str  # "math", "reading", "science", "memory", "logic"
+    level: int
+    title: str
+    description: str
+    exercise_type: str  # "multiple_choice", "calculation", "pattern", "memory_game"
+    content: Dict[str, Any]  # Exercise-specific content
+    points: int = 10
+    time_limit: Optional[int] = None  # seconds
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class TradeModule(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    trade_pathway: str  # "automotive", "healthcare", "technology", "construction", etc.
+    level: int
+    module_name: str
+    description: str
+    learning_objectives: List[str]
+    content: Dict[str, Any]
+    prerequisites: List[str] = []
+    certification_value: int = 10  # Progress toward certification
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class BrainTrainingResult(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    exercise_id: str
+    score: int
+    time_taken: int  # seconds
+    correct_answers: int
+    total_questions: int
+    completed_at: datetime = Field(default_factory=datetime.utcnow)
+
+class TradeProgress(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    trade_pathway: str
+    module_id: str
+    completion_percentage: int
+    score: int
+    time_spent: int  # minutes
+    completed_at: Optional[datetime] = None
+
+class ChatRoom(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    topic: str
+    category: str  # "study_group", "trade_discussion", "brain_training", "general"
+    created_by: str
+    participants: List[str] = []
+    max_participants: int = 10
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class ChatMessage(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    room_id: str
+    user_id: str
+    username: str
+    message: str
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
 
 class UserProfile(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -73,7 +167,7 @@ class UserProfile(BaseModel):
     grade_level: Optional[str] = None
     academic_strengths: List[str] = []
     academic_challenges: List[str] = []
-    learning_style: Optional[str] = None  # "visual", "auditory", "kinesthetic", "reading"
+    learning_style: Optional[str] = None
     
     # Goals and Motivations
     primary_goals: List[str] = []
@@ -83,22 +177,22 @@ class UserProfile(BaseModel):
     # Wellness Information
     wellness_focus_areas: List[str] = []
     stress_management_preferences: List[str] = []
-    mood_tracking_interest: int = 5  # 1-10 scale
+    mood_tracking_interest: int = 5
     
     # Nutrition Information
     dietary_restrictions: List[str] = []
-    nutrition_knowledge_level: Optional[str] = None  # "beginner", "intermediate", "advanced"
-    meal_prep_interest: int = 5  # 1-10 scale
+    nutrition_knowledge_level: Optional[str] = None
+    meal_prep_interest: int = 5
     
     # Life Skills Priorities
     life_skills_priorities: List[str] = []
-    independence_level: Optional[str] = None  # "low", "medium", "high"
+    independence_level: Optional[str] = None
     career_interests: List[str] = []
     
     # Preferences
-    communication_style: Optional[str] = None  # "formal", "casual", "encouraging"
-    reminder_frequency: Optional[str] = None  # "daily", "weekly", "as_needed"
-    challenge_level_preference: Optional[str] = None  # "easy", "moderate", "challenging"
+    communication_style: Optional[str] = None
+    reminder_frequency: Optional[str] = None
+    challenge_level_preference: Optional[str] = None
     
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
@@ -108,18 +202,18 @@ class AdaptiveSurveyResponse(BaseModel):
     user_id: str
     question_id: str
     question_text: str
-    response: Any  # Can be string, number, list, etc.
+    response: Any
     response_timestamp: datetime = Field(default_factory=datetime.utcnow)
 
 class PersonalizedRecommendation(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     user_id: str
-    category: str  # "academic", "wellness", "nutrition", "life_skills"
-    recommendation_type: str  # "goal", "activity", "resource", "tip"
+    category: str
+    recommendation_type: str
     title: str
     description: str
-    priority: int = 1  # 1-5 scale
-    personalization_reasons: List[str] = []  # Why this was recommended
+    priority: int = 1
+    personalization_reasons: List[str] = []
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class UserCreate(BaseModel):
@@ -236,133 +330,247 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         raise credentials_exception
     return User(**user)
 
-# Adaptive Learning Functions
-async def generate_personalized_recommendations(user_id: str, profile: UserProfile):
-    """Generate personalized recommendations based on user profile"""
-    recommendations = []
+# Brain Training Functions
+async def generate_brain_training_exercises():
+    """Generate default brain training exercises"""
+    exercises = [
+        # Math Exercises
+        {
+            "category": "math",
+            "level": 1,
+            "title": "Basic Addition",
+            "description": "Solve addition problems quickly",
+            "exercise_type": "calculation",
+            "content": {
+                "problems": [
+                    {"question": "15 + 23", "answer": 38},
+                    {"question": "47 + 19", "answer": 66},
+                    {"question": "82 + 35", "answer": 117}
+                ]
+            },
+            "points": 10,
+            "time_limit": 60
+        },
+        {
+            "category": "math",
+            "level": 2,
+            "title": "Percentage Calculations",
+            "description": "Calculate percentages and discounts",
+            "exercise_type": "multiple_choice",
+            "content": {
+                "questions": [
+                    {
+                        "question": "What is 20% of 150?",
+                        "options": ["25", "30", "35", "40"],
+                        "correct": 1
+                    },
+                    {
+                        "question": "If a $50 item is 15% off, what's the sale price?",
+                        "options": ["$42.50", "$45.00", "$47.50", "$48.00"],
+                        "correct": 0
+                    }
+                ]
+            },
+            "points": 15,
+            "time_limit": 90
+        },
+        # Reading Comprehension
+        {
+            "category": "reading",
+            "level": 1,
+            "title": "Main Idea Recognition",
+            "description": "Identify the main idea in short passages",
+            "exercise_type": "multiple_choice",
+            "content": {
+                "passages": [
+                    {
+                        "text": "Solar panels convert sunlight into electricity through photovoltaic cells. This renewable energy source helps reduce carbon emissions and dependence on fossil fuels.",
+                        "question": "What is the main idea of this passage?",
+                        "options": [
+                            "Solar panels are expensive",
+                            "Solar panels convert sunlight to electricity",
+                            "Fossil fuels are bad",
+                            "Carbon emissions are dangerous"
+                        ],
+                        "correct": 1
+                    }
+                ]
+            },
+            "points": 12,
+            "time_limit": 120
+        },
+        # Memory Games
+        {
+            "category": "memory",
+            "level": 1,
+            "title": "Pattern Memory",
+            "description": "Remember and repeat color patterns",
+            "exercise_type": "memory_game",
+            "content": {
+                "type": "sequence",
+                "colors": ["red", "blue", "green", "yellow"],
+                "sequence_length": 4
+            },
+            "points": 8,
+            "time_limit": 30
+        },
+        # Science
+        {
+            "category": "science",
+            "level": 1,
+            "title": "Basic Chemistry",
+            "description": "Identify chemical elements and compounds",
+            "exercise_type": "multiple_choice",
+            "content": {
+                "questions": [
+                    {
+                        "question": "What is the chemical symbol for water?",
+                        "options": ["H2O", "CO2", "NaCl", "O2"],
+                        "correct": 0
+                    },
+                    {
+                        "question": "Which element has the symbol 'Au'?",
+                        "options": ["Silver", "Gold", "Aluminum", "Argon"],
+                        "correct": 1
+                    }
+                ]
+            },
+            "points": 10,
+            "time_limit": 60
+        }
+    ]
     
-    # Academic recommendations
-    if "mathematics" in profile.academic_challenges:
-        recommendations.append({
-            "category": "academic",
-            "recommendation_type": "resource",
-            "title": "Interactive Math Practice",
-            "description": "Visual math exercises tailored for your learning style",
-            "priority": 4,
-            "personalization_reasons": ["Identified math as challenge area", f"Matches {profile.learning_style} learning style"]
-        })
-    
-    # Wellness recommendations
-    if profile.mood_tracking_interest >= 7:
-        recommendations.append({
-            "category": "wellness",
-            "recommendation_type": "activity",
-            "title": "Advanced Mood Journaling",
-            "description": "Deep reflection exercises with mood pattern analysis",
-            "priority": 5,
-            "personalization_reasons": ["High interest in mood tracking", "Advanced wellness engagement"]
-        })
-    
-    # Nutrition recommendations
-    if profile.nutrition_knowledge_level == "beginner":
-        recommendations.append({
-            "category": "nutrition",
-            "recommendation_type": "goal",
-            "title": "Nutrition Basics Journey",
-            "description": "Start with fundamental nutrition principles and food groups",
-            "priority": 4,
-            "personalization_reasons": ["Beginner nutrition level", "Foundation building needed"]
-        })
-    
-    # Life skills recommendations
-    if "financial_literacy" in profile.life_skills_priorities:
-        recommendations.append({
-            "category": "life_skills",
-            "recommendation_type": "activity",
-            "title": "Personal Budgeting Challenge",
-            "description": "Learn to create and manage a personal budget",
-            "priority": 5,
-            "personalization_reasons": ["High priority on financial literacy", "Practical life skill focus"]
-        })
-    
-    # Store recommendations
-    for rec_data in recommendations:
-        rec_data["user_id"] = user_id
-        rec_obj = PersonalizedRecommendation(**rec_data)
-        await db.personalized_recommendations.insert_one(rec_obj.dict())
-    
-    return recommendations
+    for exercise_data in exercises:
+        exercise = BrainTrainingExercise(**exercise_data)
+        existing = await db.brain_training_exercises.find_one({"title": exercise.title})
+        if not existing:
+            await db.brain_training_exercises.insert_one(exercise.dict())
 
-async def create_personalized_plan(user_id: str, profile: UserProfile):
-    """Create a personalized BalancEDD plan based on user profile"""
+async def generate_trade_modules():
+    """Generate default trade pathway modules"""
+    modules = [
+        # Automotive Technology
+        {
+            "trade_pathway": "automotive",
+            "level": 1,
+            "module_name": "Engine Basics",
+            "description": "Understanding internal combustion engines",
+            "learning_objectives": [
+                "Identify engine components",
+                "Understand combustion cycle",
+                "Basic engine maintenance"
+            ],
+            "content": {
+                "lessons": [
+                    {
+                        "title": "Engine Components",
+                        "content": "Learn about pistons, cylinders, valves, and more",
+                        "quiz": [
+                            {
+                                "question": "How many strokes are in a typical car engine cycle?",
+                                "options": ["2", "4", "6", "8"],
+                                "correct": 1
+                            }
+                        ]
+                    }
+                ]
+            },
+            "prerequisites": [],
+            "certification_value": 15
+        },
+        {
+            "trade_pathway": "automotive",
+            "level": 2,
+            "module_name": "Brake Systems",
+            "description": "Understanding brake system operation and maintenance",
+            "learning_objectives": [
+                "Brake system components",
+                "Hydraulic principles",
+                "Brake maintenance procedures"
+            ],
+            "content": {
+                "lessons": [
+                    {
+                        "title": "Hydraulic Brake Systems",
+                        "content": "Learn how brake fluid transfers force",
+                        "quiz": [
+                            {
+                                "question": "What fluid is typically used in brake systems?",
+                                "options": ["Engine oil", "Brake fluid", "Water", "Transmission fluid"],
+                                "correct": 1
+                            }
+                        ]
+                    }
+                ]
+            },
+            "prerequisites": ["Engine Basics"],
+            "certification_value": 20
+        },
+        # Healthcare
+        {
+            "trade_pathway": "healthcare",
+            "level": 1,
+            "module_name": "Medical Terminology",
+            "description": "Essential medical vocabulary and terminology",
+            "learning_objectives": [
+                "Basic medical prefixes and suffixes",
+                "Body system terminology",
+                "Common medical abbreviations"
+            ],
+            "content": {
+                "lessons": [
+                    {
+                        "title": "Medical Prefixes",
+                        "content": "Learn common prefixes used in medical terms",
+                        "quiz": [
+                            {
+                                "question": "What does the prefix 'hyper-' mean?",
+                                "options": ["Under", "Over", "Around", "Through"],
+                                "correct": 1
+                            }
+                        ]
+                    }
+                ]
+            },
+            "prerequisites": [],
+            "certification_value": 10
+        },
+        # Technology
+        {
+            "trade_pathway": "technology",
+            "level": 1,
+            "module_name": "Programming Fundamentals",
+            "description": "Introduction to programming concepts",
+            "learning_objectives": [
+                "Variables and data types",
+                "Control structures",
+                "Basic algorithms"
+            ],
+            "content": {
+                "lessons": [
+                    {
+                        "title": "Variables and Data Types",
+                        "content": "Understanding how computers store and manipulate data",
+                        "quiz": [
+                            {
+                                "question": "Which data type stores whole numbers?",
+                                "options": ["String", "Integer", "Boolean", "Float"],
+                                "correct": 1
+                            }
+                        ]
+                    }
+                ]
+            },
+            "prerequisites": [],
+            "certification_value": 12
+        }
+    ]
     
-    # Academic goals based on profile
-    academic_goals = []
-    if "mathematics" in profile.academic_challenges:
-        academic_goals.append("Master fundamental math concepts through visual learning")
-    if "reading" in profile.academic_challenges:
-        academic_goals.append("Improve reading comprehension with interactive exercises")
-    if not academic_goals:
-        academic_goals = ["Maintain academic excellence", "Explore new subjects of interest"]
-    
-    # Wellness goals
-    wellness_goals = []
-    if "stress_management" in profile.wellness_focus_areas:
-        wellness_goals.append("Develop daily stress management techniques")
-    if "emotional_regulation" in profile.wellness_focus_areas:
-        wellness_goals.append("Practice emotional awareness and regulation")
-    if profile.mood_tracking_interest >= 7:
-        wellness_goals.append("Maintain consistent mood tracking and reflection")
-    if not wellness_goals:
-        wellness_goals = ["Practice daily mindfulness", "Build emotional awareness"]
-    
-    # Nutrition goals
-    nutrition_goals = []
-    if profile.nutrition_knowledge_level == "beginner":
-        nutrition_goals.append("Learn basic nutrition principles")
-        nutrition_goals.append("Identify healthy food choices")
-    elif profile.meal_prep_interest >= 7:
-        nutrition_goals.append("Master meal planning and preparation")
-    if "weight_management" in profile.wellness_focus_areas:
-        nutrition_goals.append("Develop sustainable eating habits")
-    if not nutrition_goals:
-        nutrition_goals = ["Track daily nutrition", "Maintain balanced meals"]
-    
-    # Life skills goals
-    life_skills_goals = []
-    for priority in profile.life_skills_priorities:
-        if priority == "financial_literacy":
-            life_skills_goals.append("Master personal budgeting and money management")
-        elif priority == "time_management":
-            life_skills_goals.append("Develop effective time management skills")
-        elif priority == "communication":
-            life_skills_goals.append("Improve interpersonal communication skills")
-        elif priority == "career_preparation":
-            life_skills_goals.append("Explore career paths and build relevant skills")
-    
-    if not life_skills_goals:
-        life_skills_goals = ["Complete essential life skills modules", "Build independence"]
-    
-    # Create personalized plan
-    plan = BalancEDDPlan(
-        student_id=user_id,
-        title=f"{profile.user_id.split('-')[0]}'s Personalized BalancEDD Journey",
-        description="A customized development plan based on your unique goals, interests, and learning style",
-        academic_goals=academic_goals,
-        wellness_goals=wellness_goals,
-        nutrition_goals=nutrition_goals,
-        life_skills_goals=life_skills_goals,
-        personalized=True,
-        customization_reasons=[
-            f"Tailored for {profile.learning_style} learning style",
-            f"Focused on {', '.join(profile.primary_goals[:2])} goals",
-            f"Addresses {', '.join(profile.academic_challenges[:2])} challenges"
-        ],
-        created_by="adaptive_system"
-    )
-    
-    await db.balanc_edd_plans.insert_one(plan.dict())
-    return plan
+    for module_data in modules:
+        module = TradeModule(**module_data)
+        existing = await db.trade_modules.find_one({"module_name": module.module_name, "trade_pathway": module.trade_pathway})
+        if not existing:
+            await db.trade_modules.insert_one(module.dict())
 
 # Auth routes
 @api_router.post("/auth/register", response_model=Token)
@@ -382,7 +590,10 @@ async def register(user_data: UserRegistration):
         "institution_id": user_data.institution_id,
         "created_at": datetime.utcnow(),
         "is_active": True,
-        "onboarding_completed": bool(user_data.profile_data)
+        "onboarding_completed": bool(user_data.profile_data),
+        "brain_training_level": 1,
+        "trade_pathway": None,
+        "certification_progress": 0
     }
     user_obj = User(**user_dict)
     
@@ -397,10 +608,6 @@ async def register(user_data: UserRegistration):
         profile_data["user_id"] = user_obj.id
         profile_obj = UserProfile(**profile_data)
         await db.user_profiles.insert_one(profile_obj.dict())
-        
-        # Generate personalized recommendations and plan
-        await generate_personalized_recommendations(user_obj.id, profile_obj)
-        await create_personalized_plan(user_obj.id, profile_obj)
     
     # Store survey responses if provided
     if user_data.survey_responses:
@@ -430,6 +637,209 @@ async def login(login_data: UserLogin):
     
     user_obj = User(**user)
     return {"access_token": access_token, "token_type": "bearer", "user": user_obj}
+
+# Brain Training Routes
+@api_router.get("/brain-training/exercises")
+async def get_brain_training_exercises(
+    category: Optional[str] = None,
+    level: Optional[int] = None,
+    current_user: User = Depends(get_current_user)
+):
+    query = {}
+    if category:
+        query["category"] = category
+    if level:
+        query["level"] = level
+    
+    exercises = await db.brain_training_exercises.find(query).to_list(50)
+    return convert_objectid(exercises)
+
+@api_router.post("/brain-training/submit-result")
+async def submit_brain_training_result(
+    result: BrainTrainingResult,
+    current_user: User = Depends(get_current_user)
+):
+    result.user_id = current_user.id
+    await db.brain_training_results.insert_one(result.dict())
+    
+    # Update user's brain training level if needed
+    user_results = await db.brain_training_results.find({"user_id": current_user.id}).to_list(100)
+    avg_score = sum(r["score"] for r in user_results) / len(user_results) if user_results else 0
+    
+    if avg_score > 80 and len(user_results) >= 5:
+        new_level = current_user.brain_training_level + 1
+        await db.users.update_one(
+            {"id": current_user.id},
+            {"$set": {"brain_training_level": new_level}}
+        )
+    
+    return {"message": "Result submitted successfully", "new_level": avg_score > 80}
+
+@api_router.get("/brain-training/progress")
+async def get_brain_training_progress(current_user: User = Depends(get_current_user)):
+    results = await db.brain_training_results.find({"user_id": current_user.id}).to_list(100)
+    
+    if not results:
+        return {"total_exercises": 0, "average_score": 0, "categories": {}}
+    
+    # Calculate progress statistics
+    total_exercises = len(results)
+    average_score = sum(r["score"] for r in results) / total_exercises
+    
+    # Group by category
+    categories = {}
+    for result in results:
+        exercise = await db.brain_training_exercises.find_one({"id": result["exercise_id"]})
+        if exercise:
+            cat = exercise["category"]
+            if cat not in categories:
+                categories[cat] = {"count": 0, "total_score": 0}
+            categories[cat]["count"] += 1
+            categories[cat]["total_score"] += result["score"]
+    
+    # Calculate category averages
+    for cat in categories:
+        categories[cat]["average"] = categories[cat]["total_score"] / categories[cat]["count"]
+    
+    return {
+        "total_exercises": total_exercises,
+        "average_score": average_score,
+        "current_level": current_user.brain_training_level,
+        "categories": categories
+    }
+
+# Trade Learning Routes
+@api_router.get("/trades/pathways")
+async def get_trade_pathways():
+    pathways = [
+        {"id": "automotive", "name": "Automotive Technology", "description": "Learn automotive repair and maintenance"},
+        {"id": "healthcare", "name": "Healthcare", "description": "Medical terminology and healthcare skills"},
+        {"id": "technology", "name": "Information Technology", "description": "Programming and IT skills"},
+        {"id": "construction", "name": "Construction", "description": "Building and construction trades"},
+        {"id": "culinary", "name": "Culinary Arts", "description": "Cooking and food service"},
+        {"id": "cosmetology", "name": "Cosmetology", "description": "Hair, skin, and nail care"}
+    ]
+    return pathways
+
+@api_router.get("/trades/{pathway}/modules")
+async def get_trade_modules(pathway: str, current_user: User = Depends(get_current_user)):
+    modules = await db.trade_modules.find({"trade_pathway": pathway}).sort("level", 1).to_list(50)
+    
+    # Get user's progress for each module
+    user_progress = await db.trade_progress.find({"user_id": current_user.id, "trade_pathway": pathway}).to_list(100)
+    progress_map = {p["module_id"]: p for p in user_progress}
+    
+    # Add progress info to modules
+    for module in modules:
+        module_id = module["id"]
+        if module_id in progress_map:
+            module["user_progress"] = progress_map[module_id]
+        else:
+            module["user_progress"] = None
+    
+    return convert_objectid(modules)
+
+@api_router.post("/trades/progress")
+async def update_trade_progress(
+    progress: TradeProgress,
+    current_user: User = Depends(get_current_user)
+):
+    progress.user_id = current_user.id
+    
+    # Update or insert progress
+    existing = await db.trade_progress.find_one({
+        "user_id": current_user.id,
+        "module_id": progress.module_id
+    })
+    
+    if existing:
+        await db.trade_progress.update_one(
+            {"user_id": current_user.id, "module_id": progress.module_id},
+            {"$set": progress.dict()}
+        )
+    else:
+        await db.trade_progress.insert_one(progress.dict())
+    
+    # Update user's certification progress
+    if progress.completion_percentage == 100:
+        module = await db.trade_modules.find_one({"id": progress.module_id})
+        if module:
+            new_cert_progress = current_user.certification_progress + module["certification_value"]
+            await db.users.update_one(
+                {"id": current_user.id},
+                {"$set": {"certification_progress": new_cert_progress}}
+            )
+    
+    return {"message": "Progress updated successfully"}
+
+# Chat Room Routes
+@api_router.get("/chat/rooms")
+async def get_chat_rooms(category: Optional[str] = None):
+    query = {"is_active": True}
+    if category:
+        query["category"] = category
+    
+    rooms = await db.chat_rooms.find(query).to_list(50)
+    return convert_objectid(rooms)
+
+@api_router.post("/chat/rooms")
+async def create_chat_room(room: ChatRoom, current_user: User = Depends(get_current_user)):
+    room.created_by = current_user.id
+    room.participants = [current_user.id]
+    await db.chat_rooms.insert_one(room.dict())
+    return room
+
+@api_router.post("/chat/rooms/{room_id}/join")
+async def join_chat_room(room_id: str, current_user: User = Depends(get_current_user)):
+    room = await db.chat_rooms.find_one({"id": room_id})
+    if not room:
+        raise HTTPException(status_code=404, detail="Room not found")
+    
+    if current_user.id not in room["participants"]:
+        if len(room["participants"]) >= room["max_participants"]:
+            raise HTTPException(status_code=400, detail="Room is full")
+        
+        await db.chat_rooms.update_one(
+            {"id": room_id},
+            {"$push": {"participants": current_user.id}}
+        )
+    
+    return {"message": "Joined room successfully"}
+
+@api_router.get("/chat/rooms/{room_id}/messages")
+async def get_chat_messages(room_id: str, limit: int = 50):
+    messages = await db.chat_messages.find({"room_id": room_id}).sort("timestamp", -1).limit(limit).to_list(limit)
+    return convert_objectid(messages[::-1])  # Reverse to show oldest first
+
+@api_router.websocket("/chat/rooms/{room_id}/ws")
+async def websocket_endpoint(websocket: WebSocket, room_id: str):
+    await manager.connect(websocket, room_id)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            message_data = json.loads(data)
+            
+            # Create chat message
+            chat_message = ChatMessage(
+                room_id=room_id,
+                user_id=message_data["user_id"],
+                username=message_data["username"],
+                message=message_data["message"]
+            )
+            
+            # Save to database
+            await db.chat_messages.insert_one(chat_message.dict())
+            
+            # Broadcast to all connections in the room
+            await manager.broadcast(json.dumps({
+                "user_id": chat_message.user_id,
+                "username": chat_message.username,
+                "message": chat_message.message,
+                "timestamp": chat_message.timestamp.isoformat()
+            }), room_id)
+            
+    except WebSocketDisconnect:
+        manager.disconnect(websocket, room_id)
 
 # Survey and Onboarding routes
 @api_router.get("/survey/questions")
@@ -601,6 +1011,16 @@ async def get_student_dashboard(current_user: User = Depends(get_current_user)):
     ).to_list(50)
     life_skills = convert_objectid(life_skills)
     
+    # Get brain training progress
+    brain_training_results = await db.brain_training_results.find(
+        {"user_id": current_user.id}
+    ).limit(5).to_list(5)
+    
+    # Get trade progress
+    trade_progress = await db.trade_progress.find(
+        {"user_id": current_user.id}
+    ).limit(5).to_list(5)
+    
     # Calculate progress stats
     total_progress = len(recent_progress)
     academic_progress = len([p for p in recent_progress if p["category"] == "academic"])
@@ -619,12 +1039,16 @@ async def get_student_dashboard(current_user: User = Depends(get_current_user)):
             "wellness_progress": wellness_progress,
             "nutrition_progress": nutrition_progress,
             "life_skills_completed": life_skills_completed,
-            "life_skills_total": len(life_skills)
+            "life_skills_total": len(life_skills),
+            "brain_training_level": current_user.brain_training_level,
+            "certification_progress": current_user.certification_progress
         },
         "recent_progress": recent_progress,
         "recent_journals": recent_journals,
         "recent_nutrition": recent_nutrition,
-        "life_skills": life_skills
+        "life_skills": life_skills,
+        "brain_training_results": convert_objectid(brain_training_results),
+        "trade_progress": convert_objectid(trade_progress)
     }
 
 @api_router.post("/student/progress")
@@ -685,20 +1109,26 @@ async def cleanup_demo_data():
     try:
         # Remove existing demo user and related data
         await db.users.delete_many({"email": "student@demo.com"})
-        await db.user_profiles.delete_many({"user_id": {"$regex": ".*"}})
-        await db.balanc_edd_plans.delete_many({"student_id": {"$regex": ".*"}})
-        await db.progress_entries.delete_many({"student_id": {"$regex": ".*"}})
-        await db.journal_entries.delete_many({"student_id": {"$regex": ".*"}})
-        await db.nutrition_logs.delete_many({"student_id": {"$regex": ".*"}})
-        await db.life_skill_tasks.delete_many({"student_id": {"$regex": ".*"}})
-        await db.personalized_recommendations.delete_many({"user_id": {"$regex": ".*"}})
+        await db.user_profiles.delete_many({})
+        await db.balanc_edd_plans.delete_many({})
+        await db.progress_entries.delete_many({})
+        await db.journal_entries.delete_many({})
+        await db.nutrition_logs.delete_many({})
+        await db.life_skill_tasks.delete_many({})
+        await db.personalized_recommendations.delete_many({})
+        await db.brain_training_results.delete_many({})
+        await db.trade_progress.delete_many({})
         return {"message": "Demo data cleaned up successfully"}
     except Exception as e:
         return {"message": f"Cleanup completed with warnings: {str(e)}"}
 
 @api_router.post("/demo/setup")
 async def setup_demo_data():
-    # Create a demo student
+    # Generate brain training and trade modules
+    await generate_brain_training_exercises()
+    await generate_trade_modules()
+    
+    # Create a demo student with enhanced features
     demo_user = {
         "id": str(uuid.uuid4()),
         "email": "student@demo.com",
@@ -708,6 +1138,9 @@ async def setup_demo_data():
         "created_at": datetime.utcnow(),
         "is_active": True,
         "onboarding_completed": True,
+        "brain_training_level": 2,
+        "trade_pathway": "technology",
+        "certification_progress": 35,
         "hashed_password": get_password_hash("demo123")
     }
     
@@ -721,7 +1154,7 @@ async def setup_demo_data():
         "academic_strengths": ["Science", "Technology"],
         "academic_challenges": ["Mathematics", "English/Language Arts"],
         "learning_style": "visual",
-        "primary_goals": ["Improve academic performance", "Build confidence", "Develop life skills"],
+        "primary_goals": ["Improve academic performance", "Prepare for future career", "Develop life skills"],
         "motivation_factors": ["Achieving personal goals", "Learning new things"],
         "preferred_activities": ["Interactive exercises", "Visual learning", "Technology-based"],
         "wellness_focus_areas": ["Stress management", "Building self-confidence"],
@@ -746,17 +1179,17 @@ async def setup_demo_data():
     demo_plan = {
         "id": str(uuid.uuid4()),
         "student_id": demo_user["id"],
-        "title": "Alex's Personalized BalancEDD Journey",
-        "description": "A customized development plan based on your visual learning style and focus on academic improvement",
+        "title": "Alex's Advanced BalancEDD Journey",
+        "description": "A customized development plan integrating brain training, trade skills, and holistic wellness",
         "academic_goals": [
-            "Master fundamental math concepts through visual learning",
-            "Improve English comprehension with interactive exercises",
-            "Leverage science strengths for cross-subject learning"
+            "Master visual math concepts through brain training",
+            "Complete technology trade pathway modules",
+            "Improve English comprehension with interactive exercises"
         ],
         "wellness_goals": [
             "Develop daily stress management techniques",
-            "Build self-confidence through achievement tracking",
-            "Practice emotional awareness and regulation"
+            "Participate in study group chat rooms",
+            "Build self-confidence through achievement tracking"
         ],
         "nutrition_goals": [
             "Maintain balanced nutrition knowledge",
@@ -765,14 +1198,14 @@ async def setup_demo_data():
         ],
         "life_skills_goals": [
             "Master personal budgeting and money management",
-            "Develop effective time management skills",
-            "Explore technology career preparation"
+            "Complete technology certification pathway",
+            "Develop effective time management skills"
         ],
         "personalized": True,
         "customization_reasons": [
             "Tailored for visual learning style",
-            "Focused on academic improvement and confidence building goals",
-            "Addresses mathematics and English challenges"
+            "Focused on technology career preparation",
+            "Addresses mathematics challenges with brain training"
         ],
         "created_at": datetime.utcnow(),
         "created_by": "adaptive_system"
@@ -780,128 +1213,77 @@ async def setup_demo_data():
     
     await db.balanc_edd_plans.insert_one(demo_plan)
     
-    # Create personalized recommendations
-    demo_recommendations = [
+    # Create brain training results
+    demo_brain_results = [
         {
             "id": str(uuid.uuid4()),
             "user_id": demo_user["id"],
-            "category": "academic",
-            "recommendation_type": "resource",
-            "title": "Visual Math Learning Hub",
-            "description": "Interactive visual exercises specifically designed for math concepts",
-            "priority": 5,
-            "personalization_reasons": ["Visual learning style", "Math identified as challenge area"],
-            "created_at": datetime.utcnow()
-        },
-        {
-            "id": str(uuid.uuid4()),
-            "user_id": demo_user["id"],
-            "category": "wellness",
-            "recommendation_type": "activity",
-            "title": "Confidence Building Tracker",
-            "description": "Daily activities to build self-confidence through small wins",
-            "priority": 4,
-            "personalization_reasons": ["Building confidence goal", "Moderate challenge preference"],
-            "created_at": datetime.utcnow()
+            "exercise_id": "math_basic_addition",
+            "score": 85,
+            "time_taken": 45,
+            "correct_answers": 8,
+            "total_questions": 10,
+            "completed_at": datetime.utcnow() - timedelta(days=1)
         },
         {
             "id": str(uuid.uuid4()),
             "user_id": demo_user["id"],
-            "category": "life_skills",
-            "recommendation_type": "goal",
-            "title": "Teen Financial Literacy Program",
-            "description": "Comprehensive budgeting and money management for teens",
-            "priority": 5,
-            "personalization_reasons": ["Financial literacy priority", "Career preparation focus"],
+            "exercise_id": "reading_comprehension",
+            "score": 92,
+            "time_taken": 78,
+            "correct_answers": 9,
+            "total_questions": 10,
+            "completed_at": datetime.utcnow() - timedelta(hours=6)
+        }
+    ]
+    
+    await db.brain_training_results.insert_many(demo_brain_results)
+    
+    # Create trade progress
+    demo_trade_progress = [
+        {
+            "id": str(uuid.uuid4()),
+            "user_id": demo_user["id"],
+            "trade_pathway": "technology",
+            "module_id": "programming_fundamentals",
+            "completion_percentage": 75,
+            "score": 88,
+            "time_spent": 120,
+            "completed_at": None
+        }
+    ]
+    
+    await db.trade_progress.insert_many(demo_trade_progress)
+    
+    # Create demo chat rooms
+    demo_chat_rooms = [
+        {
+            "id": str(uuid.uuid4()),
+            "name": "Math Study Group",
+            "topic": "Algebra and Geometry Help",
+            "category": "study_group",
+            "created_by": demo_user["id"],
+            "participants": [demo_user["id"]],
+            "max_participants": 8,
+            "is_active": True,
+            "created_at": datetime.utcnow()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "name": "Tech Career Discussion",
+            "topic": "Programming and IT Careers",
+            "category": "trade_discussion",
+            "created_by": demo_user["id"],
+            "participants": [demo_user["id"]],
+            "max_participants": 15,
+            "is_active": True,
             "created_at": datetime.utcnow()
         }
     ]
     
-    await db.personalized_recommendations.insert_many(demo_recommendations)
+    await db.chat_rooms.insert_many(demo_chat_rooms)
     
-    # Create demo progress entries
-    demo_progress = [
-        {
-            "id": str(uuid.uuid4()),
-            "student_id": demo_user["id"],
-            "category": "academic",
-            "type": "module_completion",
-            "title": "Visual Math Module 2 Completed",
-            "description": "Successfully completed algebra fundamentals using visual methods",
-            "value": {"score": 85, "time_spent": 120, "method": "visual"},
-            "date": datetime.utcnow() - timedelta(days=2)
-        },
-        {
-            "id": str(uuid.uuid4()),
-            "student_id": demo_user["id"],
-            "category": "wellness",
-            "type": "confidence_building",
-            "title": "Daily Confidence Check-in",
-            "description": "Completed confidence building activity",
-            "value": {"confidence_level": 7, "achievement": "Presented in class"},
-            "date": datetime.utcnow() - timedelta(days=1)
-        }
-    ]
-    
-    await db.progress_entries.insert_many(demo_progress)
-    
-    # Create demo journal entries
-    demo_journals = [
-        {
-            "id": str(uuid.uuid4()),
-            "student_id": demo_user["id"],
-            "mood_rating": 7,
-            "content": "Today was a good day. The visual math exercises really helped me understand the concepts better. I feel more confident about tomorrow's test.",
-            "tags": ["positive", "academic", "confidence", "visual-learning"],
-            "date": datetime.utcnow() - timedelta(days=1)
-        }
-    ]
-    
-    await db.journal_entries.insert_many(demo_journals)
-    
-    # Create demo life skills tasks
-    demo_life_skills = [
-        {
-            "id": str(uuid.uuid4()),
-            "student_id": demo_user["id"],
-            "skill_category": "financial_literacy",
-            "task_name": "Create Personal Budget",
-            "description": "Learn to create and manage a monthly budget",
-            "completed": True,
-            "completion_date": datetime.utcnow() - timedelta(days=5),
-            "notes": "Great exercise! Really helped me understand money management",
-            "difficulty_level": "moderate",
-            "personalized": True
-        },
-        {
-            "id": str(uuid.uuid4()),
-            "student_id": demo_user["id"],
-            "skill_category": "time_management",
-            "task_name": "Time Blocking Technique",
-            "description": "Learn to organize your day using time blocking",
-            "completed": False,
-            "completion_date": None,
-            "notes": "Scheduled for next week",
-            "difficulty_level": "moderate",
-            "personalized": True
-        },
-        {
-            "id": str(uuid.uuid4()),
-            "student_id": demo_user["id"],
-            "skill_category": "career_preparation",
-            "task_name": "Technology Career Exploration",
-            "description": "Research different technology career paths",
-            "completed": False,
-            "completion_date": None,
-            "notes": "Looking forward to this!",
-            "difficulty_level": "moderate",
-            "personalized": True
-        }
-    ]
-    
-    await db.life_skill_tasks.insert_many(demo_life_skills)
-    
-    return {"message": "Enhanced demo data created successfully", "demo_user": convert_objectid(demo_user)}
+    return {"message": "Enhanced demo data with brain training and trade features created successfully", "demo_user": convert_objectid(demo_user)}
 
 # Include the router in the main app
 app.include_router(api_router)
