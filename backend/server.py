@@ -113,7 +113,7 @@ class NutritionLog(BaseModel):
 
 class LifeSkillTask(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    student_id: str
+    student_id: Optional[str] = None
     skill_category: str  # "first_aid", "home_economics", "auto_mechanics", "parenting"
     task_name: str
     description: str
