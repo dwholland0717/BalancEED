@@ -15,6 +15,7 @@ from passlib.context import CryptContext
 import bcrypt
 from bson import ObjectId
 import json
+import random
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -83,7 +84,7 @@ def convert_objectid(obj):
         return [convert_objectid(item) for item in obj]
     return obj
 
-# Enhanced Models for Brain Training and Trade Learning
+# Enhanced Models for Complete Learning Platform
 class User(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     email: str
@@ -96,6 +97,80 @@ class User(BaseModel):
     brain_training_level: int = 1
     trade_pathway: Optional[str] = None
     certification_progress: int = 0
+    language_streak: int = 0
+    asvab_progress: Dict[str, int] = {}
+    location: Optional[str] = None  # For local opportunities
+
+class LanguageLearningLesson(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    language: str  # "spanish", "french", "german", "japanese", etc.
+    level: int
+    unit: int
+    lesson_number: int
+    title: str
+    description: str
+    lesson_type: str  # "vocabulary", "grammar", "conversation", "listening"
+    content: Dict[str, Any]  # Lesson-specific content
+    points: int = 10
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class LanguageProgress(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    language: str
+    level: int = 1
+    unit: int = 1
+    total_points: int = 0
+    streak_count: int = 0
+    lessons_completed: int = 0
+    last_practice: Optional[datetime] = None
+
+class ASVABModule(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    subject: str  # "general_science", "arithmetic_reasoning", "word_knowledge", etc.
+    level: int
+    module_name: str
+    description: str
+    content: Dict[str, Any]
+    practice_questions: List[Dict[str, Any]]
+    passing_score: int = 70
+    time_limit: int = 30  # minutes
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class ASVABResult(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    subject: str
+    score: int
+    time_taken: int  # minutes
+    correct_answers: int
+    total_questions: int
+    percentile: int
+    completed_at: datetime = Field(default_factory=datetime.utcnow)
+
+class CareerAssessment(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    assessment_type: str  # "trade", "military", "college"
+    interests: List[str]
+    aptitudes: List[str]
+    personality_traits: List[str]
+    work_preferences: List[str]
+    results: Dict[str, Any]
+    recommendations: List[Dict[str, Any]]
+    completed_at: datetime = Field(default_factory=datetime.utcnow)
+
+class LocalOpportunity(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    opportunity_type: str  # "trade", "apprenticeship", "military", "college"
+    title: str
+    organization: str
+    location: str
+    description: str
+    requirements: List[str]
+    contact_info: Dict[str, str]
+    application_deadline: Optional[datetime] = None
+    active: bool = True
 
 class BrainTrainingExercise(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -329,6 +404,344 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     if user is None:
         raise credentials_exception
     return User(**user)
+
+# Language Learning Functions
+async def generate_language_lessons():
+    """Generate default language learning lessons"""
+    lessons = [
+        # Spanish Lessons
+        {
+            "language": "spanish",
+            "level": 1,
+            "unit": 1,
+            "lesson_number": 1,
+            "title": "Basic Greetings",
+            "description": "Learn essential Spanish greetings and introductions",
+            "lesson_type": "vocabulary",
+            "content": {
+                "vocabulary": [
+                    {"spanish": "Hola", "english": "Hello", "audio": "hola.mp3"},
+                    {"spanish": "Buenos días", "english": "Good morning", "audio": "buenos_dias.mp3"},
+                    {"spanish": "Buenas tardes", "english": "Good afternoon", "audio": "buenas_tardes.mp3"},
+                    {"spanish": "Buenas noches", "english": "Good evening", "audio": "buenas_noches.mp3"},
+                    {"spanish": "¿Cómo te llamas?", "english": "What's your name?", "audio": "como_te_llamas.mp3"}
+                ],
+                "exercises": [
+                    {
+                        "type": "match",
+                        "question": "Match the Spanish greeting with its English translation",
+                        "pairs": [
+                            {"spanish": "Hola", "english": "Hello"},
+                            {"spanish": "Buenos días", "english": "Good morning"},
+                            {"spanish": "Buenas tardes", "english": "Good afternoon"}
+                        ]
+                    },
+                    {
+                        "type": "multiple_choice",
+                        "question": "How do you say 'Good morning' in Spanish?",
+                        "options": ["Hola", "Buenos días", "Buenas tardes", "Buenas noches"],
+                        "correct": 1
+                    }
+                ]
+            },
+            "points": 15
+        },
+        {
+            "language": "spanish",
+            "level": 1,
+            "unit": 1,
+            "lesson_number": 2,
+            "title": "Numbers 1-10",
+            "description": "Learn Spanish numbers from one to ten",
+            "lesson_type": "vocabulary",
+            "content": {
+                "vocabulary": [
+                    {"spanish": "uno", "english": "one", "audio": "uno.mp3"},
+                    {"spanish": "dos", "english": "two", "audio": "dos.mp3"},
+                    {"spanish": "tres", "english": "three", "audio": "tres.mp3"},
+                    {"spanish": "cuatro", "english": "four", "audio": "cuatro.mp3"},
+                    {"spanish": "cinco", "english": "five", "audio": "cinco.mp3"}
+                ],
+                "exercises": [
+                    {
+                        "type": "listening",
+                        "question": "Listen and select the correct number",
+                        "audio": "tres.mp3",
+                        "options": ["dos", "tres", "cuatro"],
+                        "correct": 1
+                    }
+                ]
+            },
+            "points": 12
+        },
+        # French Lessons
+        {
+            "language": "french",
+            "level": 1,
+            "unit": 1,
+            "lesson_number": 1,
+            "title": "Basic Greetings",
+            "description": "Learn essential French greetings",
+            "lesson_type": "vocabulary",
+            "content": {
+                "vocabulary": [
+                    {"french": "Bonjour", "english": "Hello/Good morning", "audio": "bonjour.mp3"},
+                    {"french": "Bonsoir", "english": "Good evening", "audio": "bonsoir.mp3"},
+                    {"french": "Salut", "english": "Hi/Bye (informal)", "audio": "salut.mp3"},
+                    {"french": "Comment vous appelez-vous?", "english": "What is your name? (formal)", "audio": "comment_vous_appelez_vous.mp3"}
+                ]
+            },
+            "points": 15
+        }
+    ]
+    
+    for lesson_data in lessons:
+        lesson = LanguageLearningLesson(**lesson_data)
+        existing = await db.language_lessons.find_one({
+            "language": lesson.language,
+            "level": lesson.level,
+            "unit": lesson.unit,
+            "lesson_number": lesson.lesson_number
+        })
+        if not existing:
+            await db.language_lessons.insert_one(lesson.dict())
+
+# ASVAB Functions
+async def generate_asvab_modules():
+    """Generate ASVAB preparation modules"""
+    modules = [
+        {
+            "subject": "general_science",
+            "level": 1,
+            "module_name": "Biology Basics",
+            "description": "Fundamental biology concepts for ASVAB General Science",
+            "content": {
+                "topics": [
+                    "Cell structure and function",
+                    "Human body systems",
+                    "Genetics basics",
+                    "Ecology and ecosystems"
+                ],
+                "study_materials": [
+                    {
+                        "title": "Cell Structure",
+                        "content": "Learn about the basic components of plant and animal cells",
+                        "examples": ["Nucleus", "Mitochondria", "Cell membrane", "Cytoplasm"]
+                    }
+                ]
+            },
+            "practice_questions": [
+                {
+                    "question": "Which organelle is known as the 'powerhouse of the cell'?",
+                    "options": ["Nucleus", "Mitochondria", "Ribosome", "Vacuole"],
+                    "correct": 1,
+                    "explanation": "Mitochondria produce ATP, the cell's main energy currency."
+                },
+                {
+                    "question": "What is the largest organ in the human body?",
+                    "options": ["Heart", "Liver", "Skin", "Brain"],
+                    "correct": 2,
+                    "explanation": "The skin is the largest organ, covering the entire body."
+                }
+            ],
+            "passing_score": 70,
+            "time_limit": 25
+        },
+        {
+            "subject": "arithmetic_reasoning",
+            "level": 1,
+            "module_name": "Word Problems",
+            "description": "Solve arithmetic word problems for ASVAB",
+            "content": {
+                "topics": [
+                    "Basic arithmetic operations",
+                    "Fractions and decimals",
+                    "Percentages",
+                    "Ratios and proportions"
+                ]
+            },
+            "practice_questions": [
+                {
+                    "question": "If a car travels 240 miles in 4 hours, what is its average speed?",
+                    "options": ["50 mph", "60 mph", "70 mph", "80 mph"],
+                    "correct": 1,
+                    "explanation": "Speed = Distance ÷ Time = 240 ÷ 4 = 60 mph"
+                },
+                {
+                    "question": "A store offers a 20% discount on a $50 item. What is the sale price?",
+                    "options": ["$30", "$35", "$40", "$45"],
+                    "correct": 2,
+                    "explanation": "20% of $50 = $10, so sale price = $50 - $10 = $40"
+                }
+            ],
+            "passing_score": 75,
+            "time_limit": 30
+        },
+        {
+            "subject": "word_knowledge",
+            "level": 1,
+            "module_name": "Vocabulary Building",
+            "description": "Expand vocabulary for ASVAB Word Knowledge section",
+            "content": {
+                "topics": [
+                    "Synonyms and antonyms",
+                    "Word roots and prefixes",
+                    "Context clues",
+                    "Common vocabulary"
+                ]
+            },
+            "practice_questions": [
+                {
+                    "question": "What does 'meticulous' mean?",
+                    "options": ["Careless", "Very careful and precise", "Fast", "Loud"],
+                    "correct": 1,
+                    "explanation": "Meticulous means showing great attention to detail; very careful."
+                },
+                {
+                    "question": "Which word is closest in meaning to 'abundant'?",
+                    "options": ["Scarce", "Plentiful", "Small", "Difficult"],
+                    "correct": 1,
+                    "explanation": "Abundant means existing in large quantities; plentiful."
+                }
+            ],
+            "passing_score": 70,
+            "time_limit": 20
+        },
+        {
+            "subject": "mathematics_knowledge",
+            "level": 1,
+            "module_name": "Algebra Fundamentals",
+            "description": "Basic algebra concepts for ASVAB Math Knowledge",
+            "content": {
+                "topics": [
+                    "Solving linear equations",
+                    "Working with exponents",
+                    "Factoring",
+                    "Graphing linear equations"
+                ]
+            },
+            "practice_questions": [
+                {
+                    "question": "Solve for x: 2x + 5 = 13",
+                    "options": ["x = 3", "x = 4", "x = 5", "x = 6"],
+                    "correct": 1,
+                    "explanation": "2x + 5 = 13, so 2x = 8, therefore x = 4"
+                },
+                {
+                    "question": "What is 3² × 2³?",
+                    "options": ["36", "72", "18", "24"],
+                    "correct": 1,
+                    "explanation": "3² = 9, 2³ = 8, so 9 × 8 = 72"
+                }
+            ],
+            "passing_score": 75,
+            "time_limit": 25
+        },
+        {
+            "subject": "mechanical_comprehension",
+            "level": 1,
+            "module_name": "Simple Machines",
+            "description": "Understanding basic mechanical principles",
+            "content": {
+                "topics": [
+                    "Levers and fulcrums",
+                    "Pulleys and wheels",
+                    "Inclined planes",
+                    "Gears and mechanical advantage"
+                ]
+            },
+            "practice_questions": [
+                {
+                    "question": "Which type of lever has the fulcrum between the effort and the load?",
+                    "options": ["First class", "Second class", "Third class", "Fourth class"],
+                    "correct": 0,
+                    "explanation": "A first-class lever has the fulcrum positioned between the effort and load, like a seesaw."
+                }
+            ],
+            "passing_score": 70,
+            "time_limit": 20
+        }
+    ]
+    
+    for module_data in modules:
+        module = ASVABModule(**module_data)
+        existing = await db.asvab_modules.find_one({
+            "subject": module.subject,
+            "level": module.level,
+            "module_name": module.module_name
+        })
+        if not existing:
+            await db.asvab_modules.insert_one(module.dict())
+
+# Career Assessment Functions
+def calculate_career_match(interests, aptitudes, personality):
+    """Calculate career recommendations based on assessment results"""
+    
+    # Trade recommendations
+    trade_scores = {}
+    
+    if "mechanical" in interests or "hands_on" in aptitudes:
+        trade_scores["automotive"] = 85
+        trade_scores["construction"] = 80
+        trade_scores["manufacturing"] = 75
+    
+    if "helping_people" in interests or "healthcare" in aptitudes:
+        trade_scores["healthcare"] = 90
+        trade_scores["emergency_services"] = 85
+    
+    if "technology" in interests or "logical_thinking" in aptitudes:
+        trade_scores["information_technology"] = 95
+        trade_scores["electronics"] = 85
+    
+    if "creative" in interests or "artistic" in aptitudes:
+        trade_scores["culinary"] = 80
+        trade_scores["cosmetology"] = 85
+        trade_scores["graphic_design"] = 90
+    
+    # Military branch recommendations
+    military_scores = {}
+    
+    if "leadership" in personality or "disciplined" in personality:
+        military_scores["army"] = 85
+        military_scores["marines"] = 90
+    
+    if "technology" in interests or "analytical" in aptitudes:
+        military_scores["air_force"] = 95
+        military_scores["space_force"] = 90
+    
+    if "adventure" in interests or "physical_fitness" in aptitudes:
+        military_scores["navy"] = 85
+        military_scores["coast_guard"] = 80
+    
+    # Military specialties (MOS)
+    mos_recommendations = []
+    
+    if "technology" in interests:
+        mos_recommendations.extend([
+            {"branch": "air_force", "mos": "3D1X2", "title": "Cyber Transport Systems", "score": 95},
+            {"branch": "army", "mos": "25B", "title": "Information Technology Specialist", "score": 90},
+            {"branch": "navy", "mos": "IT", "title": "Information Systems Technician", "score": 88}
+        ])
+    
+    if "mechanical" in interests:
+        mos_recommendations.extend([
+            {"branch": "army", "mos": "91B", "title": "Wheeled Vehicle Mechanic", "score": 85},
+            {"branch": "air_force", "mos": "2A6X1", "title": "Aerospace Propulsion", "score": 88},
+            {"branch": "navy", "mos": "AD", "title": "Aviation Machinist's Mate", "score": 83}
+        ])
+    
+    if "healthcare" in interests:
+        mos_recommendations.extend([
+            {"branch": "army", "mos": "68W", "title": "Combat Medic Specialist", "score": 92},
+            {"branch": "air_force", "mos": "4N0X1", "title": "Aerospace Medical Service", "score": 90},
+            {"branch": "navy", "mos": "HM", "title": "Hospital Corpsman", "score": 89}
+        ])
+    
+    return {
+        "trade_recommendations": sorted(trade_scores.items(), key=lambda x: x[1], reverse=True)[:3],
+        "military_branches": sorted(military_scores.items(), key=lambda x: x[1], reverse=True)[:3],
+        "military_specialties": sorted(mos_recommendations, key=lambda x: x["score"], reverse=True)[:5]
+    }
 
 # Brain Training Functions
 async def generate_brain_training_exercises():
@@ -593,7 +1006,10 @@ async def register(user_data: UserRegistration):
         "onboarding_completed": bool(user_data.profile_data),
         "brain_training_level": 1,
         "trade_pathway": None,
-        "certification_progress": 0
+        "certification_progress": 0,
+        "language_streak": 0,
+        "asvab_progress": {},
+        "location": None
     }
     user_obj = User(**user_dict)
     
@@ -637,6 +1053,302 @@ async def login(login_data: UserLogin):
     
     user_obj = User(**user)
     return {"access_token": access_token, "token_type": "bearer", "user": user_obj}
+
+# Language Learning Routes
+@api_router.get("/language-learning/languages")
+async def get_available_languages():
+    return [
+        {"code": "spanish", "name": "Spanish", "flag": "🇪🇸", "difficulty": "Easy"},
+        {"code": "french", "name": "French", "flag": "🇫🇷", "difficulty": "Medium"},
+        {"code": "german", "name": "German", "flag": "🇩🇪", "difficulty": "Medium"},
+        {"code": "japanese", "name": "Japanese", "flag": "🇯🇵", "difficulty": "Hard"},
+        {"code": "mandarin", "name": "Mandarin Chinese", "flag": "🇨🇳", "difficulty": "Hard"},
+        {"code": "italian", "name": "Italian", "flag": "🇮🇹", "difficulty": "Easy"},
+        {"code": "portuguese", "name": "Portuguese", "flag": "🇵🇹", "difficulty": "Easy"},
+        {"code": "arabic", "name": "Arabic", "flag": "🇸🇦", "difficulty": "Hard"}
+    ]
+
+@api_router.get("/language-learning/{language}/lessons")
+async def get_language_lessons(
+    language: str, 
+    level: int = 1, 
+    current_user: User = Depends(get_current_user)
+):
+    lessons = await db.language_lessons.find({
+        "language": language,
+        "level": level
+    }).sort("unit", 1).sort("lesson_number", 1).to_list(50)
+    
+    return convert_objectid(lessons)
+
+@api_router.get("/language-learning/progress")
+async def get_language_progress(current_user: User = Depends(get_current_user)):
+    progress = await db.language_progress.find({"user_id": current_user.id}).to_list(10)
+    return convert_objectid(progress)
+
+@api_router.post("/language-learning/complete-lesson")
+async def complete_language_lesson(
+    language: str,
+    lesson_id: str,
+    score: int,
+    current_user: User = Depends(get_current_user)
+):
+    # Update or create language progress
+    progress = await db.language_progress.find_one({
+        "user_id": current_user.id,
+        "language": language
+    })
+    
+    if progress:
+        # Update existing progress
+        new_points = progress["total_points"] + (score * 2)
+        new_streak = progress["streak_count"] + 1 if score >= 80 else 0
+        new_lessons = progress["lessons_completed"] + 1
+        
+        await db.language_progress.update_one(
+            {"user_id": current_user.id, "language": language},
+            {"$set": {
+                "total_points": new_points,
+                "streak_count": new_streak,
+                "lessons_completed": new_lessons,
+                "last_practice": datetime.utcnow()
+            }}
+        )
+    else:
+        # Create new progress record
+        new_progress = LanguageProgress(
+            user_id=current_user.id,
+            language=language,
+            total_points=score * 2,
+            streak_count=1 if score >= 80 else 0,
+            lessons_completed=1,
+            last_practice=datetime.utcnow()
+        )
+        await db.language_progress.insert_one(new_progress.dict())
+    
+    # Update user's language streak
+    await db.users.update_one(
+        {"id": current_user.id},
+        {"$set": {"language_streak": new_streak if 'new_streak' in locals() else 1}}
+    )
+    
+    return {"message": "Lesson completed successfully", "points_earned": score * 2}
+
+# ASVAB Routes
+@api_router.get("/asvab/subjects")
+async def get_asvab_subjects():
+    return [
+        {"code": "general_science", "name": "General Science", "icon": "🔬"},
+        {"code": "arithmetic_reasoning", "name": "Arithmetic Reasoning", "icon": "🧮"},
+        {"code": "word_knowledge", "name": "Word Knowledge", "icon": "📖"},
+        {"code": "paragraph_comprehension", "name": "Paragraph Comprehension", "icon": "📝"},
+        {"code": "mathematics_knowledge", "name": "Mathematics Knowledge", "icon": "📐"},
+        {"code": "electronics_information", "name": "Electronics Information", "icon": "⚡"},
+        {"code": "auto_shop_information", "name": "Auto & Shop Information", "icon": "🔧"},
+        {"code": "mechanical_comprehension", "name": "Mechanical Comprehension", "icon": "⚙️"}
+    ]
+
+@api_router.get("/asvab/{subject}/modules")
+async def get_asvab_modules(subject: str, current_user: User = Depends(get_current_user)):
+    modules = await db.asvab_modules.find({"subject": subject}).sort("level", 1).to_list(50)
+    return convert_objectid(modules)
+
+@api_router.post("/asvab/submit-result")
+async def submit_asvab_result(result: ASVABResult, current_user: User = Depends(get_current_user)):
+    result.user_id = current_user.id
+    
+    # Calculate percentile (simplified)
+    result.percentile = min(95, max(5, result.score))
+    
+    await db.asvab_results.insert_one(result.dict())
+    
+    # Update user's ASVAB progress
+    await db.users.update_one(
+        {"id": current_user.id},
+        {"$set": {f"asvab_progress.{result.subject}": result.score}}
+    )
+    
+    return {"message": "ASVAB result submitted successfully", "percentile": result.percentile}
+
+@api_router.get("/asvab/progress")
+async def get_asvab_progress(current_user: User = Depends(get_current_user)):
+    results = await db.asvab_results.find({"user_id": current_user.id}).to_list(100)
+    
+    # Calculate overall ASVAB score (AFQT approximation)
+    subject_scores = {}
+    for result in results:
+        subject_scores[result["subject"]] = result["score"]
+    
+    # AFQT calculation (simplified: AR + MK + WK + PC)
+    afqt_subjects = ["arithmetic_reasoning", "mathematics_knowledge", "word_knowledge", "paragraph_comprehension"]
+    afqt_scores = [subject_scores.get(subject, 0) for subject in afqt_subjects]
+    afqt_score = sum(afqt_scores) / len([s for s in afqt_scores if s > 0]) if any(afqt_scores) else 0
+    
+    return {
+        "subject_scores": subject_scores,
+        "afqt_score": round(afqt_score, 1),
+        "total_tests_taken": len(results),
+        "military_eligibility": "Eligible" if afqt_score >= 31 else "Not Eligible"
+    }
+
+# Career Assessment Routes
+@api_router.get("/career-assessment/questions")
+async def get_career_assessment_questions():
+    return {
+        "interests": [
+            {
+                "id": "work_environment",
+                "question": "What type of work environment do you prefer?",
+                "options": ["Indoors/Office", "Outdoors", "Workshop/Lab", "Varies"],
+                "type": "single_choice"
+            },
+            {
+                "id": "activity_type",
+                "question": "What type of activities interest you most?",
+                "options": ["Working with hands", "Helping people", "Analyzing data", "Creating things"],
+                "type": "multi_choice"
+            },
+            {
+                "id": "problem_solving",
+                "question": "How do you prefer to solve problems?",
+                "options": ["Logical analysis", "Creative thinking", "Following procedures", "Team collaboration"],
+                "type": "single_choice"
+            }
+        ],
+        "aptitudes": [
+            {
+                "id": "strengths",
+                "question": "What are your strongest abilities?",
+                "options": ["Mechanical skills", "Communication", "Math/Science", "Technology", "Leadership"],
+                "type": "multi_choice"
+            },
+            {
+                "id": "learning_style",
+                "question": "How do you learn best?",
+                "options": ["Hands-on practice", "Reading/studying", "Visual demonstrations", "Group discussions"],
+                "type": "single_choice"
+            }
+        ],
+        "personality": [
+            {
+                "id": "work_style",
+                "question": "Which describes your work style?",
+                "options": ["Independent", "Team-oriented", "Leadership role", "Supportive role"],
+                "type": "single_choice"
+            },
+            {
+                "id": "traits",
+                "question": "Which traits describe you?",
+                "options": ["Detail-oriented", "Creative", "Organized", "Adventurous", "Analytical"],
+                "type": "multi_choice"
+            }
+        ]
+    }
+
+@api_router.post("/career-assessment/submit")
+async def submit_career_assessment(
+    assessment_data: Dict[str, Any],
+    current_user: User = Depends(get_current_user)
+):
+    # Process assessment responses
+    interests = assessment_data.get("interests", [])
+    aptitudes = assessment_data.get("aptitudes", [])
+    personality = assessment_data.get("personality", [])
+    
+    # Calculate recommendations
+    results = calculate_career_match(interests, aptitudes, personality)
+    
+    # Create assessment record
+    assessment = CareerAssessment(
+        user_id=current_user.id,
+        assessment_type="comprehensive",
+        interests=interests,
+        aptitudes=aptitudes,
+        personality_traits=personality,
+        work_preferences=assessment_data.get("work_preferences", []),
+        results=results,
+        recommendations=[]
+    )
+    
+    await db.career_assessments.insert_one(assessment.dict())
+    
+    return results
+
+# Local Opportunities Routes
+@api_router.get("/local-opportunities")
+async def get_local_opportunities(
+    location: Optional[str] = None,
+    opportunity_type: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    query = {"active": True}
+    
+    if location:
+        query["location"] = {"$regex": location, "$options": "i"}
+    elif current_user.location:
+        query["location"] = {"$regex": current_user.location, "$options": "i"}
+    
+    if opportunity_type:
+        query["opportunity_type"] = opportunity_type
+    
+    opportunities = await db.local_opportunities.find(query).to_list(50)
+    return convert_objectid(opportunities)
+
+@api_router.post("/local-opportunities/search")
+async def search_opportunities(search_data: Dict[str, Any]):
+    location = search_data.get("location", "")
+    interests = search_data.get("interests", [])
+    
+    # Generate mock opportunities based on search
+    opportunities = [
+        {
+            "id": str(uuid.uuid4()),
+            "opportunity_type": "apprenticeship",
+            "title": "Automotive Technician Apprenticeship",
+            "organization": "Johnson Auto Group",
+            "location": f"{location} Area",
+            "description": "4-year automotive technician apprenticeship program with full benefits",
+            "requirements": ["High school diploma", "Valid driver's license", "Mechanical aptitude"],
+            "contact_info": {"phone": "(555) 123-4567", "email": "careers@johnsonauto.com"},
+            "active": True
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "opportunity_type": "military",
+            "title": "Army National Guard - Technology Specialist",
+            "organization": "U.S. Army National Guard",
+            "location": f"{location} Recruiting Station",
+            "description": "Part-time service with technology training and education benefits",
+            "requirements": ["U.S. Citizen", "Age 17-35", "High school diploma", "Pass ASVAB"],
+            "contact_info": {"phone": "(555) 987-6543", "website": "www.nationalguard.mil"},
+            "active": True
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "opportunity_type": "college",
+            "title": "Community College Career Fair",
+            "organization": f"{location} Community College",
+            "location": f"{location} Community College Campus",
+            "description": "Annual career fair with local employers and trade programs",
+            "requirements": ["Open to all students", "Bring resume", "Dress professionally"],
+            "contact_info": {"phone": "(555) 456-7890", "email": "careerfair@lccc.edu"},
+            "application_deadline": datetime.utcnow() + timedelta(days=30),
+            "active": True
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "opportunity_type": "trade",
+            "title": "Electrician Training Program",
+            "organization": "Metro Electrical Contractors",
+            "location": f"{location} Training Center",
+            "description": "6-month electrician training with job placement assistance",
+            "requirements": ["18+ years old", "Physical fitness", "Basic math skills"],
+            "contact_info": {"phone": "(555) 321-0987", "email": "training@metroelectrical.com"},
+            "active": True
+        }
+    ]
+    
+    return opportunities
 
 # Brain Training Routes
 @api_router.get("/brain-training/exercises")
@@ -1021,6 +1733,16 @@ async def get_student_dashboard(current_user: User = Depends(get_current_user)):
         {"user_id": current_user.id}
     ).limit(5).to_list(5)
     
+    # Get language progress
+    language_progress = await db.language_progress.find(
+        {"user_id": current_user.id}
+    ).limit(5).to_list(5)
+    
+    # Get ASVAB progress
+    asvab_results = await db.asvab_results.find(
+        {"user_id": current_user.id}
+    ).limit(5).to_list(5)
+    
     # Calculate progress stats
     total_progress = len(recent_progress)
     academic_progress = len([p for p in recent_progress if p["category"] == "academic"])
@@ -1041,14 +1763,18 @@ async def get_student_dashboard(current_user: User = Depends(get_current_user)):
             "life_skills_completed": life_skills_completed,
             "life_skills_total": len(life_skills),
             "brain_training_level": current_user.brain_training_level,
-            "certification_progress": current_user.certification_progress
+            "certification_progress": current_user.certification_progress,
+            "language_streak": current_user.language_streak,
+            "asvab_completed": len(asvab_results)
         },
         "recent_progress": recent_progress,
         "recent_journals": recent_journals,
         "recent_nutrition": recent_nutrition,
         "life_skills": life_skills,
         "brain_training_results": convert_objectid(brain_training_results),
-        "trade_progress": convert_objectid(trade_progress)
+        "trade_progress": convert_objectid(trade_progress),
+        "language_progress": convert_objectid(language_progress),
+        "asvab_results": convert_objectid(asvab_results)
     }
 
 @api_router.post("/student/progress")
@@ -1118,15 +1844,19 @@ async def cleanup_demo_data():
         await db.personalized_recommendations.delete_many({})
         await db.brain_training_results.delete_many({})
         await db.trade_progress.delete_many({})
+        await db.language_progress.delete_many({})
+        await db.asvab_results.delete_many({})
         return {"message": "Demo data cleaned up successfully"}
     except Exception as e:
         return {"message": f"Cleanup completed with warnings: {str(e)}"}
 
 @api_router.post("/demo/setup")
 async def setup_demo_data():
-    # Generate brain training and trade modules
+    # Generate all learning modules
     await generate_brain_training_exercises()
     await generate_trade_modules()
+    await generate_language_lessons()
+    await generate_asvab_modules()
     
     # Create a demo student with enhanced features
     demo_user = {
@@ -1138,23 +1868,118 @@ async def setup_demo_data():
         "created_at": datetime.utcnow(),
         "is_active": True,
         "onboarding_completed": True,
-        "brain_training_level": 2,
+        "brain_training_level": 3,
         "trade_pathway": "technology",
-        "certification_progress": 35,
+        "certification_progress": 45,
+        "language_streak": 7,
+        "asvab_progress": {
+            "general_science": 78,
+            "arithmetic_reasoning": 82,
+            "word_knowledge": 75,
+            "mathematics_knowledge": 80
+        },
+        "location": "Metro City",
         "hashed_password": get_password_hash("demo123")
     }
     
     await db.users.insert_one(demo_user)
     
-    # Create demo profile
+    # Create demo language progress
+    demo_language_progress = [
+        {
+            "id": str(uuid.uuid4()),
+            "user_id": demo_user["id"],
+            "language": "spanish",
+            "level": 2,
+            "unit": 3,
+            "total_points": 156,
+            "streak_count": 7,
+            "lessons_completed": 12,
+            "last_practice": datetime.utcnow() - timedelta(hours=2)
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "user_id": demo_user["id"],
+            "language": "french",
+            "level": 1,
+            "unit": 2,
+            "total_points": 84,
+            "streak_count": 3,
+            "lessons_completed": 6,
+            "last_practice": datetime.utcnow() - timedelta(days=2)
+        }
+    ]
+    
+    await db.language_progress.insert_many(demo_language_progress)
+    
+    # Create demo ASVAB results
+    demo_asvab_results = [
+        {
+            "id": str(uuid.uuid4()),
+            "user_id": demo_user["id"],
+            "subject": "general_science",
+            "score": 78,
+            "time_taken": 23,
+            "correct_answers": 15,
+            "total_questions": 20,
+            "percentile": 78,
+            "completed_at": datetime.utcnow() - timedelta(days=5)
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "user_id": demo_user["id"],
+            "subject": "arithmetic_reasoning",
+            "score": 82,
+            "time_taken": 28,
+            "correct_answers": 16,
+            "total_questions": 20,
+            "percentile": 82,
+            "completed_at": datetime.utcnow() - timedelta(days=3)
+        }
+    ]
+    
+    await db.asvab_results.insert_many(demo_asvab_results)
+    
+    # Create demo career assessment
+    demo_career_assessment = {
+        "id": str(uuid.uuid4()),
+        "user_id": demo_user["id"],
+        "assessment_type": "comprehensive",
+        "interests": ["technology", "problem_solving", "helping_people"],
+        "aptitudes": ["logical_thinking", "technology", "communication"],
+        "personality_traits": ["analytical", "team_oriented", "detail_oriented"],
+        "work_preferences": ["office_environment", "flexible_hours"],
+        "results": {
+            "trade_recommendations": [
+                ["information_technology", 95],
+                ["electronics", 85],
+                ["healthcare", 75]
+            ],
+            "military_branches": [
+                ["air_force", 95],
+                ["space_force", 90],
+                ["navy", 85]
+            ],
+            "military_specialties": [
+                {"branch": "air_force", "mos": "3D1X2", "title": "Cyber Transport Systems", "score": 95},
+                {"branch": "army", "mos": "25B", "title": "Information Technology Specialist", "score": 90}
+            ]
+        },
+        "recommendations": [],
+        "completed_at": datetime.utcnow() - timedelta(days=7)
+    }
+    
+    await db.career_assessments.insert_one(demo_career_assessment)
+    
+    # Create existing demo data (profile, plan, etc.)
     demo_profile = {
         "id": str(uuid.uuid4()),
         "user_id": demo_user["id"],
-        "grade_level": "10th Grade",
-        "academic_strengths": ["Science", "Technology"],
-        "academic_challenges": ["Mathematics", "English/Language Arts"],
+        "grade_level": "11th Grade",
+        "academic_strengths": ["Science", "Technology", "Mathematics"],
+        "academic_challenges": ["English/Language Arts", "History"],
         "learning_style": "visual",
-        "primary_goals": ["Improve academic performance", "Prepare for future career", "Develop life skills"],
+        "primary_goals": ["Prepare for future career", "Improve academic performance", "Develop life skills"],
         "motivation_factors": ["Achieving personal goals", "Learning new things"],
         "preferred_activities": ["Interactive exercises", "Visual learning", "Technology-based"],
         "wellness_focus_areas": ["Stress management", "Building self-confidence"],
@@ -1163,9 +1988,9 @@ async def setup_demo_data():
         "dietary_restrictions": ["No restrictions"],
         "nutrition_knowledge_level": "intermediate",
         "meal_prep_interest": 6,
-        "life_skills_priorities": ["Financial literacy", "Time management", "Career preparation"],
+        "life_skills_priorities": ["Financial literacy", "Time management", "Career preparation", "Technology skills"],
         "independence_level": "medium",
-        "career_interests": ["Technology", "Science"],
+        "career_interests": ["Technology", "Science", "Healthcare"],
         "communication_style": "encouraging",
         "reminder_frequency": "daily",
         "challenge_level_preference": "moderate",
@@ -1175,37 +2000,41 @@ async def setup_demo_data():
     
     await db.user_profiles.insert_one(demo_profile)
     
-    # Create personalized plan
+    # Create enhanced personalized plan
     demo_plan = {
         "id": str(uuid.uuid4()),
         "student_id": demo_user["id"],
-        "title": "Alex's Advanced BalancEDD Journey",
-        "description": "A customized development plan integrating brain training, trade skills, and holistic wellness",
+        "title": "Alex's Comprehensive Career Prep Journey",
+        "description": "A multi-faceted development plan integrating academic excellence, career preparation, and military readiness",
         "academic_goals": [
-            "Master visual math concepts through brain training",
-            "Complete technology trade pathway modules",
-            "Improve English comprehension with interactive exercises"
+            "Master ASVAB preparation across all subjects",
+            "Complete technology certification pathway",
+            "Achieve fluency in Spanish for career enhancement",
+            "Improve English comprehension through ASVAB practice"
         ],
         "wellness_goals": [
             "Develop daily stress management techniques",
-            "Participate in study group chat rooms",
-            "Build self-confidence through achievement tracking"
+            "Participate in study group collaborations",
+            "Build leadership skills for military preparation",
+            "Maintain physical fitness for service readiness"
         ],
         "nutrition_goals": [
-            "Maintain balanced nutrition knowledge",
-            "Explore meal planning strategies",
-            "Track nutrition for performance optimization"
+            "Maintain balanced nutrition for optimal performance",
+            "Learn meal planning for independent living",
+            "Track nutrition for physical fitness goals"
         ],
         "life_skills_goals": [
-            "Master personal budgeting and money management",
-            "Complete technology certification pathway",
-            "Develop effective time management skills"
+            "Master personal budgeting and financial planning",
+            "Complete technology certification with 80% proficiency",
+            "Develop effective time management and study habits",
+            "Build communication skills for leadership roles"
         ],
         "personalized": True,
         "customization_reasons": [
-            "Tailored for visual learning style",
-            "Focused on technology career preparation",
-            "Addresses mathematics challenges with brain training"
+            "Tailored for visual learning style and technology interests",
+            "Focused on military and college career preparation",
+            "Integrated ASVAB preparation for military readiness",
+            "Includes language learning for career competitiveness"
         ],
         "created_at": datetime.utcnow(),
         "created_by": "adaptive_system"
@@ -1213,77 +2042,7 @@ async def setup_demo_data():
     
     await db.balanc_edd_plans.insert_one(demo_plan)
     
-    # Create brain training results
-    demo_brain_results = [
-        {
-            "id": str(uuid.uuid4()),
-            "user_id": demo_user["id"],
-            "exercise_id": "math_basic_addition",
-            "score": 85,
-            "time_taken": 45,
-            "correct_answers": 8,
-            "total_questions": 10,
-            "completed_at": datetime.utcnow() - timedelta(days=1)
-        },
-        {
-            "id": str(uuid.uuid4()),
-            "user_id": demo_user["id"],
-            "exercise_id": "reading_comprehension",
-            "score": 92,
-            "time_taken": 78,
-            "correct_answers": 9,
-            "total_questions": 10,
-            "completed_at": datetime.utcnow() - timedelta(hours=6)
-        }
-    ]
-    
-    await db.brain_training_results.insert_many(demo_brain_results)
-    
-    # Create trade progress
-    demo_trade_progress = [
-        {
-            "id": str(uuid.uuid4()),
-            "user_id": demo_user["id"],
-            "trade_pathway": "technology",
-            "module_id": "programming_fundamentals",
-            "completion_percentage": 75,
-            "score": 88,
-            "time_spent": 120,
-            "completed_at": None
-        }
-    ]
-    
-    await db.trade_progress.insert_many(demo_trade_progress)
-    
-    # Create demo chat rooms
-    demo_chat_rooms = [
-        {
-            "id": str(uuid.uuid4()),
-            "name": "Math Study Group",
-            "topic": "Algebra and Geometry Help",
-            "category": "study_group",
-            "created_by": demo_user["id"],
-            "participants": [demo_user["id"]],
-            "max_participants": 8,
-            "is_active": True,
-            "created_at": datetime.utcnow()
-        },
-        {
-            "id": str(uuid.uuid4()),
-            "name": "Tech Career Discussion",
-            "topic": "Programming and IT Careers",
-            "category": "trade_discussion",
-            "created_by": demo_user["id"],
-            "participants": [demo_user["id"]],
-            "max_participants": 15,
-            "is_active": True,
-            "created_at": datetime.utcnow()
-        }
-    ]
-    
-    await db.chat_rooms.insert_many(demo_chat_rooms)
-    
-    return {"message": "Enhanced demo data with brain training and trade features created successfully", "demo_user": convert_objectid(demo_user)}
+    return {"message": "Comprehensive demo data with language learning, ASVAB, and career assessment created successfully", "demo_user": convert_objectid(demo_user)}
 
 # Include the router in the main app
 app.include_router(api_router)
