@@ -558,9 +558,12 @@ async def get_dashboard_data(current_user: User = Depends(get_current_user)):
             })
     
     # Get recent achievements
-    recent_attempts = await db.quiz_attempts.find(
+    recent_attempts_raw = await db.quiz_attempts.find(
         {"user_id": current_user.id}
     ).sort("attempted_at", -1).limit(5).to_list(5)
+    
+    # Convert to proper models to avoid ObjectId serialization issues
+    recent_attempts = [QuizAttempt(**attempt) for attempt in recent_attempts_raw]
     
     # Calculate level (100 XP per level)
     current_level = (current_user.total_xp // 100) + 1
