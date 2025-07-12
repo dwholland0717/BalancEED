@@ -29,6 +29,15 @@ app = FastAPI()
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
+# Add your routes to the router instead of directly to app
+@api_router.get("/")
+async def root():
+    return {"message": "BalancEDD API is running", "status": "healthy"}
+
+@api_router.get("/health")
+async def health_check():
+    return {"status": "healthy", "message": "BalancEDD API is operational"}
+
 # Security
 security = HTTPBearer()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
