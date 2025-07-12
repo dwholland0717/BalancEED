@@ -2506,6 +2506,7 @@ function App() {
           <Routes>
             <Route path="/login" element={<LoginForm />} />
             <Route path="/register" element={<AdaptiveRegistrationForm />} />
+            <Route path="/launch" element={<LaunchPage />} />
             <Route path="/brain-training" element={
               <ProtectedRoute>
                 <BrainTrainingDashboard />
