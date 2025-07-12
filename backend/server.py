@@ -96,7 +96,7 @@ class ProgressEntry(BaseModel):
 
 class JournalEntry(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    student_id: str
+    student_id: Optional[str] = None
     mood_rating: int  # 1-10
     content: str
     tags: List[str] = []
