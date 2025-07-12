@@ -570,29 +570,6 @@ const AdaptiveRegistrationForm = () => {
       return renderBasicInfo();
     }
 
-    if (questionsLoading) {
-      return (
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading personalization questions...</p>
-        </div>
-      );
-    }
-
-    if (!surveyQuestions) {
-      return (
-        <div className="text-center py-12">
-          <p className="text-red-600 mb-4">Failed to load questions</p>
-          <button 
-            onClick={fetchSurveyQuestions}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-          >
-            Retry Loading Questions
-          </button>
-        </div>
-      );
-    }
-
     const stepQuestions = {
       1: { title: 'Academic Profile', questions: surveyQuestions.academic || [] },
       2: { title: 'Goals & Motivation', questions: surveyQuestions.goals || [] },
