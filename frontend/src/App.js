@@ -352,17 +352,266 @@ const Register = () => {
   );
 };
 
+// Dashboard Component
+const Dashboard = () => {
+  const [dashboardData, setDashboardData] = useState(null);
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const { user, logout } = useAuth();
+
+  useEffect(() => {
+    fetchDashboardData();
+    fetchCourses();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      const response = await axios.get(`${API}/dashboard`);
+      setDashboardData(response.data);
+    } catch (error) {
+      console.error('Failed to fetch dashboard data:', error);
+    }
+  };
+
+  const fetchCourses = async () => {
+    try {
+      const response = await axios.get(`${API}/courses`);
+      setCourses(response.data);
+    } catch (error) {
+      console.error('Failed to fetch courses:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const enrollInCourse = async (courseId) => {
+    try {
+      await axios.post(`${API}/courses/${courseId}/enroll`);
+      fetchDashboardData(); // Refresh dashboard
+      alert('Successfully enrolled in course!');
+    } catch (error) {
+      alert(error.response?.data?.detail || 'Failed to enroll');
+    }
+  };
+
+  if (loading) return <LoadingSpinner />;
+
+  const currentLevel = dashboardData ? Math.floor(user.total_xp / 100) + 1 : 1;
+  const xpForNextLevel = dashboardData ? (currentLevel * 100) - user.total_xp : 100;
+  const xpProgress = dashboardData ? ((user.total_xp % 100) / 100) * 100 : 0;
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center">
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                BalancEED
+              </h1>
+            </div>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-1">
+                  <span className="text-2xl">🔥</span>
+                  <span className="font-bold text-orange-500">{user.current_streak}</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <span className="text-2xl">⭐</span>
+                  <span className="font-bold text-yellow-500">{user.total_xp}</span>
+                </div>
+              </div>
+              <button
+                onClick={logout}
+                className="text-gray-600 hover:text-gray-800 px-3 py-2 rounded-md text-sm font-medium"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Welcome Section */}
+        <div className="mb-8">
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">
+            Welcome back, {user.first_name}! 👋
+          </h2>
+          <p className="text-gray-600">Ready to continue your learning journey?</p>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-6 text-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-blue-100">Level</p>
+                <p className="text-3xl font-bold">{currentLevel}</p>
+              </div>
+              <div className="text-4xl">🏆</div>
+            </div>
+            <div className="mt-4">
+              <div className="bg-blue-400 rounded-full h-2">
+                <div 
+                  className="bg-white rounded-full h-2 transition-all duration-300"
+                  style={{ width: `${xpProgress}%` }}
+                ></div>
+              </div>
+              <p className="text-sm text-blue-100 mt-1">{xpForNextLevel} XP to next level</p>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-6 text-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-green-100">Streak</p>
+                <p className="text-3xl font-bold">{user.current_streak}</p>
+              </div>
+              <div className="text-4xl">🔥</div>
+            </div>
+            <p className="text-sm text-green-100 mt-4">
+              Longest: {user.longest_streak} days
+            </p>
+          </div>
+
+          <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl p-6 text-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-purple-100">Total XP</p>
+                <p className="text-3xl font-bold">{user.total_xp}</p>
+              </div>
+              <div className="text-4xl">⭐</div>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl p-6 text-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-orange-100">Completed</p>
+                <p className="text-3xl font-bold">{user.completed_courses.length}</p>
+              </div>
+              <div className="text-4xl">📚</div>
+            </div>
+            <p className="text-sm text-orange-100 mt-4">courses completed</p>
+          </div>
+        </div>
+
+        {/* Continue Learning Section */}
+        {dashboardData && dashboardData.enrolled_courses.length > 0 && (
+          <div className="mb-8">
+            <h3 className="text-2xl font-bold text-gray-900 mb-4">Continue Learning</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {dashboardData.enrolled_courses.map(({ course, progress }) => (
+                <div key={course.id} className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="font-bold text-lg text-gray-900">{course.title}</h4>
+                    <span className="text-2xl">📖</span>
+                  </div>
+                  <p className="text-gray-600 text-sm mb-4">{course.description}</p>
+                  
+                  <div className="mb-4">
+                    <div className="flex justify-between text-sm text-gray-600 mb-1">
+                      <span>Progress</span>
+                      <span>{Math.round(progress.progress_percentage)}%</span>
+                    </div>
+                    <div className="bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-blue-500 rounded-full h-2 transition-all duration-300"
+                        style={{ width: `${progress.progress_percentage}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                  
+                  <button className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-colors">
+                    Continue Learning
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Available Courses */}
+        <div>
+          <h3 className="text-2xl font-bold text-gray-900 mb-6">Discover Courses</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {courses.map((course) => (
+              <div key={course.id} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+                <div className="h-48 bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
+                  <span className="text-6xl">📚</span>
+                </div>
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-bold text-lg text-gray-900">{course.title}</h4>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      course.difficulty === 'beginner' ? 'bg-green-100 text-green-800' :
+                      course.difficulty === 'intermediate' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-red-100 text-red-800'
+                    }`}>
+                      {course.difficulty}
+                    </span>
+                  </div>
+                  
+                  <p className="text-gray-600 text-sm mb-4">{course.description}</p>
+                  
+                  <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+                    <span>⏱️ {Math.round(course.estimated_duration / 60)} hours</span>
+                    <span>⭐ {course.xp_reward} XP</span>
+                    <span>👨‍🎓 {course.enrollment_count}</span>
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-1 mb-4">
+                    {course.tags.slice(0, 3).map((tag) => (
+                      <span key={tag} className="px-2 py-1 bg-gray-100 text-gray-600 rounded-md text-xs">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                  
+                  <button
+                    onClick={() => enrollInCourse(course.id)}
+                    className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-2 rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-200 font-medium"
+                  >
+                    Enroll Now
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+};
+
 function App() {
   return (
-    <div className="App">
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
-    </div>
+    <AuthProvider>
+      <div className="App">
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={
+              <PublicRoute>
+                <Login />
+              </PublicRoute>
+            } />
+            <Route path="/register" element={
+              <PublicRoute>
+                <Register />
+              </PublicRoute>
+            } />
+            <Route path="/dashboard" element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/" element={<Navigate to="/dashboard" />} />
+          </Routes>
+        </BrowserRouter>
+      </div>
+    </AuthProvider>
   );
 }
 
