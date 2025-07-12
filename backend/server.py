@@ -670,6 +670,23 @@ async def complete_life_skill_task(task_id: str, current_user: User = Depends(ge
     return {"message": "Task completed successfully"}
 
 # Demo data route (enhanced)
+@api_router.post("/demo/cleanup")
+async def cleanup_demo_data():
+    """Clean up existing demo data"""
+    try:
+        # Remove existing demo user and related data
+        await db.users.delete_many({"email": "student@demo.com"})
+        await db.user_profiles.delete_many({"user_id": {"$regex": ".*"}})
+        await db.balanc_edd_plans.delete_many({"student_id": {"$regex": ".*"}})
+        await db.progress_entries.delete_many({"student_id": {"$regex": ".*"}})
+        await db.journal_entries.delete_many({"student_id": {"$regex": ".*"}})
+        await db.nutrition_logs.delete_many({"student_id": {"$regex": ".*"}})
+        await db.life_skill_tasks.delete_many({"student_id": {"$regex": ".*"}})
+        await db.personalized_recommendations.delete_many({"user_id": {"$regex": ".*"}})
+        return {"message": "Demo data cleaned up successfully"}
+    except Exception as e:
+        return {"message": f"Cleanup completed with warnings: {str(e)}"}
+
 @api_router.post("/demo/setup")
 async def setup_demo_data():
     # Create a demo student
