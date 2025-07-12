@@ -721,10 +721,11 @@ const LoginForm = () => {
           
           <div className="mt-6 text-center">
             <button
-              onClick={setupDemo}
-              className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+              onClick={handleDemoSetup}
+              disabled={loading}
+              className="text-blue-600 hover:text-blue-800 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Try Demo Account
+              {loading ? 'Setting up demo...' : 'Try Demo Account'}
             </button>
           </div>
           
