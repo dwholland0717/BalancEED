@@ -104,7 +104,7 @@ class JournalEntry(BaseModel):
 
 class NutritionLog(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    student_id: str
+    student_id: Optional[str] = None
     meal_type: str  # "breakfast", "lunch", "dinner", "snack"
     foods: List[str]
     calories: Optional[int] = None
