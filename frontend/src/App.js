@@ -216,6 +216,7 @@ const AdaptiveRegistrationForm = () => {
   });
   const [surveyData, setSurveyData] = useState({});
   const [surveyQuestions, setSurveyQuestions] = useState(null);
+  const [questionsLoading, setQuestionsLoading] = useState(true);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
