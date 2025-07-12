@@ -104,14 +104,33 @@ const AuthProvider = ({ children }) => {
   const setupDemo = async () => {
     try {
       console.log('🎭 Setting up demo data');
+      
+      // First cleanup any existing demo data
+      try {
+        await axios.post(`${API}/demo/cleanup`);
+        console.log('✅ Demo cleanup completed');
+      } catch (cleanupError) {
+        console.log('ℹ️ Cleanup skipped, proceeding with setup');
+      }
+      
+      // Setup fresh demo data
       const setupResponse = await axios.post(`${API}/demo/setup`);
       console.log('✅ Demo setup response:', setupResponse.data);
       
       // Auto-login with demo credentials
-      return await login('student@demo.com', 'demo123');
+      console.log('🔐 Attempting demo login');
+      const loginResult = await login('student@demo.com', 'demo123');
+      
+      if (loginResult.success) {
+        console.log('✅ Demo login successful');
+        return { success: true };
+      } else {
+        console.error('❌ Demo login failed:', loginResult.error);
+        return { success: false, error: loginResult.error };
+      }
     } catch (error) {
       console.error('❌ Demo setup error:', error);
-      return { success: false, error: 'Demo setup failed' };
+      return { success: false, error: 'Demo setup failed: ' + (error.response?.data?.detail || error.message) };
     }
   };
 
