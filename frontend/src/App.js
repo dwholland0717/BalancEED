@@ -632,7 +632,7 @@ const AdaptiveRegistrationForm = () => {
         </div>
 
         {/* Form Content */}
-        <div className="bg-white rounded-lg shadow-xl p-8"}
+        <div className="bg-white rounded-lg shadow-xl p-8">
 
           {renderCurrentStep()}
 
