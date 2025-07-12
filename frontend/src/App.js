@@ -25,9 +25,20 @@ const AuthProvider = ({ children }) => {
   useEffect(() => {
     // Check for stored token on component mount
     const storedToken = localStorage.getItem('token');
-    if (storedToken) {
-      setToken(storedToken);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+    const storedUser = localStorage.getItem('user');
+    
+    if (storedToken && storedUser) {
+      try {
+        const userData = JSON.parse(storedUser);
+        setToken(storedToken);
+        setUser(userData);
+        axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+        console.log('🔄 Restored authentication from localStorage');
+      } catch (error) {
+        console.error('❌ Error parsing stored user data:', error);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
     }
     setLoading(false);
   }, []);
