@@ -206,26 +206,31 @@ async def get_student_dashboard(current_user: User = Depends(get_current_user)):
     
     # Get student's plan
     plan = await db.balanc_edd_plans.find_one({"student_id": current_user.id})
+    plan = convert_objectid(plan) if plan else None
     
     # Get recent progress entries
     recent_progress = await db.progress_entries.find(
         {"student_id": current_user.id}
     ).sort("date", -1).limit(10).to_list(10)
+    recent_progress = convert_objectid(recent_progress)
     
     # Get recent journal entries
     recent_journals = await db.journal_entries.find(
         {"student_id": current_user.id}
     ).sort("date", -1).limit(5).to_list(5)
+    recent_journals = convert_objectid(recent_journals)
     
     # Get recent nutrition logs
     recent_nutrition = await db.nutrition_logs.find(
         {"student_id": current_user.id}
     ).sort("date", -1).limit(5).to_list(5)
+    recent_nutrition = convert_objectid(recent_nutrition)
     
     # Get life skills tasks
     life_skills = await db.life_skill_tasks.find(
         {"student_id": current_user.id}
     ).to_list(50)
+    life_skills = convert_objectid(life_skills)
     
     # Calculate progress stats
     total_progress = len(recent_progress)
