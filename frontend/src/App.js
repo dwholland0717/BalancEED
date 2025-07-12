@@ -539,18 +539,45 @@ const AdaptiveRegistrationForm = () => {
       return renderBasicInfo();
     }
 
+    if (questionsLoading) {
+      return (
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading personalization questions...</p>
+        </div>
+      );
+    }
+
     if (!surveyQuestions) {
-      return <div className="text-center">Loading questions...</div>;
+      return (
+        <div className="text-center py-12">
+          <p className="text-red-600 mb-4">Failed to load questions</p>
+          <button 
+            onClick={fetchSurveyQuestions}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
+            Retry Loading Questions
+          </button>
+        </div>
+      );
     }
 
     const stepQuestions = {
-      1: { title: 'Academic Profile', questions: surveyQuestions.academic },
-      2: { title: 'Goals & Motivation', questions: surveyQuestions.goals },
-      3: { title: 'Wellness & Nutrition', questions: [...surveyQuestions.wellness, ...surveyQuestions.nutrition] },
-      4: { title: 'Life Skills & Preferences', questions: [...surveyQuestions.life_skills, ...surveyQuestions.preferences] }
+      1: { title: 'Academic Profile', questions: surveyQuestions.academic || [] },
+      2: { title: 'Goals & Motivation', questions: surveyQuestions.goals || [] },
+      3: { title: 'Wellness & Nutrition', questions: [...(surveyQuestions.wellness || []), ...(surveyQuestions.nutrition || [])] },
+      4: { title: 'Life Skills & Preferences', questions: [...(surveyQuestions.life_skills || []), ...(surveyQuestions.preferences || [])] }
     };
 
     const currentStepData = stepQuestions[currentStep];
+    
+    if (!currentStepData || !currentStepData.questions.length) {
+      return (
+        <div className="text-center py-12">
+          <p className="text-gray-600">No questions available for this step</p>
+        </div>
+      );
+    }
     
     return (
       <div className="space-y-6">
