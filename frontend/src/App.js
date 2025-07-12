@@ -289,18 +289,20 @@ const AdaptiveRegistrationForm = () => {
     ]
   });
   const [questionsLoading, setQuestionsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(''); // Start with no error
   const [loading, setLoading] = useState(false);
 
   const steps = [
     'Basic Information',
-    'Academic Profile',
+    'Academic Profile', 
     'Goals & Motivation',
     'Wellness & Nutrition',
     'Life Skills & Preferences'
   ];
 
   useEffect(() => {
+    // Clear any error since we have working fallback questions
+    setError('');
     fetchSurveyQuestions();
   }, []);
 
