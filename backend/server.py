@@ -426,7 +426,7 @@ async def setup_demo_data():
     
     await db.life_skill_tasks.insert_many(demo_life_skills)
     
-    return {"message": "Demo data created successfully", "demo_user": demo_user}
+    return {"message": "Demo data created successfully", "demo_user": convert_objectid(demo_user)}
 
 # Include the router in the main app
 app.include_router(api_router)
