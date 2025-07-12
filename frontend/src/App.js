@@ -645,6 +645,7 @@ const NutritionForm = ({ onSubmit }) => {
 
 const LoginForm = () => {
   const { login, setupDemo } = useAuth();
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -663,6 +664,7 @@ const LoginForm = () => {
       setError(result.error);
     } else {
       console.log('✅ Login successful, redirecting...');
+      navigate('/', { replace: true });
     }
     setLoading(false);
   };
@@ -678,6 +680,7 @@ const LoginForm = () => {
       setError(result.error || 'Demo setup failed');
     } else {
       console.log('✅ Demo setup successful');
+      navigate('/', { replace: true });
     }
     setLoading(false);
   };
