@@ -63,6 +63,7 @@ const AuthProvider = ({ children }) => {
       if (access_token && userData) {
         console.log('🔑 Setting token and user data');
         localStorage.setItem('token', access_token);
+        localStorage.setItem('user', JSON.stringify(userData));
         setToken(access_token);
         setUser(userData);
         console.log('✅ Authentication successful');
