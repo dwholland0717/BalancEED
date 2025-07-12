@@ -235,10 +235,18 @@ const AdaptiveRegistrationForm = () => {
   const fetchSurveyQuestions = async () => {
     setQuestionsLoading(true);
     try {
-      console.log('🔄 Fetching survey questions from:', `${API}/survey/questions`);
-      const response = await axios.get(`${API}/survey/questions`);
-      console.log('✅ Survey questions loaded:', response.data);
+      const apiUrl = `${API}/survey/questions`;
+      console.log('🔄 Fetching survey questions from:', apiUrl);
+      console.log('🔄 BACKEND_URL:', BACKEND_URL);
+      console.log('🔄 API:', API);
+      
+      const response = await axios.get(apiUrl);
+      console.log('✅ Survey questions response status:', response.status);
+      console.log('✅ Survey questions data keys:', Object.keys(response.data));
+      console.log('✅ Academic questions count:', response.data.academic?.length);
+      
       setSurveyQuestions(response.data);
+      console.log('✅ Survey questions set in state');
     } catch (error) {
       console.error('❌ Error fetching survey questions:', error);
       setError('Failed to load survey questions. Please refresh the page.');
