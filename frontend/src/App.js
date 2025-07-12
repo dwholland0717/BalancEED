@@ -765,6 +765,7 @@ function App() {
                 <StudentDashboard />
               </ProtectedRoute>
             } />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
       </div>
