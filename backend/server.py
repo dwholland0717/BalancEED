@@ -35,6 +35,17 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 SECRET_KEY = "your-secret-key-here"
 ALGORITHM = "HS256"
 
+# Helper function to convert MongoDB documents to JSON serializable format
+def convert_objectid(obj):
+    """Convert MongoDB ObjectId to string recursively"""
+    if isinstance(obj, ObjectId):
+        return str(obj)
+    elif isinstance(obj, dict):
+        return {key: convert_objectid(value) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_objectid(item) for item in obj]
+    return obj
+
 # Models
 class User(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
