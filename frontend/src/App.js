@@ -88,6 +88,7 @@ const AuthProvider = ({ children }) => {
       
       if (access_token && newUser) {
         localStorage.setItem('token', access_token);
+        localStorage.setItem('user', JSON.stringify(newUser));
         setToken(access_token);
         setUser(newUser);
         return { success: true };
