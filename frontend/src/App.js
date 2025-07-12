@@ -233,10 +233,58 @@ const AdaptiveRegistrationForm = () => {
 
   const fetchSurveyQuestions = async () => {
     try {
+      console.log('🔄 Fetching survey questions from:', `${API}/survey/questions`);
       const response = await axios.get(`${API}/survey/questions`);
+      console.log('✅ Survey questions loaded:', response.data);
       setSurveyQuestions(response.data);
     } catch (error) {
-      console.error('Error fetching survey questions:', error);
+      console.error('❌ Error fetching survey questions:', error);
+      setError('Failed to load survey questions. Please refresh the page.');
+      // Set dummy questions as fallback
+      setSurveyQuestions({
+        academic: [{
+          id: "grade_level",
+          type: "select",
+          question: "What grade level are you currently in?",
+          options: ["6th Grade", "7th Grade", "8th Grade", "9th Grade", "10th Grade", "11th Grade", "12th Grade"],
+          required: true
+        }],
+        goals: [{
+          id: "primary_goals",
+          type: "multi_select",
+          question: "What are your main goals?",
+          options: ["Academic improvement", "Personal growth", "Life skills"],
+          required: true
+        }],
+        wellness: [{
+          id: "mood_tracking_interest",
+          type: "scale",
+          question: "Interest in mood tracking?",
+          scale: { min: 1, max: 10, labels: { "1": "Not interested", "10": "Very interested" }},
+          required: true
+        }],
+        nutrition: [{
+          id: "nutrition_knowledge_level",
+          type: "select",
+          question: "Your nutrition knowledge level?",
+          options: ["Beginner", "Intermediate", "Advanced"],
+          required: true
+        }],
+        life_skills: [{
+          id: "life_skills_priorities",
+          type: "multi_select",
+          question: "Important life skills?",
+          options: ["Financial literacy", "Time management", "Communication"],
+          required: true
+        }],
+        preferences: [{
+          id: "communication_style",
+          type: "select",
+          question: "Preferred communication style?",
+          options: ["Formal", "Casual", "Encouraging"],
+          required: true
+        }]
+      });
     }
   };
 
