@@ -240,7 +240,8 @@ const AdaptiveRegistrationForm = () => {
       console.log('🔄 BACKEND_URL:', BACKEND_URL);
       console.log('🔄 API:', API);
       
-      const response = await axios.get(apiUrl);
+      // Add timeout to the request
+      const response = await axios.get(apiUrl, { timeout: 30000 }); // 30 second timeout
       console.log('✅ Survey questions response status:', response.status);
       console.log('✅ Survey questions data keys:', Object.keys(response.data));
       console.log('✅ Academic questions count:', response.data.academic?.length);
@@ -251,7 +252,13 @@ const AdaptiveRegistrationForm = () => {
       console.error('❌ Error fetching survey questions:', error);
       console.error('❌ Error response:', error.response?.data);
       console.error('❌ Error status:', error.response?.status);
-      setError('Failed to load survey questions. Please refresh the page.');
+      console.error('❌ Error code:', error.code);
+      
+      if (error.code === 'ECONNABORTED') {
+        setError('Request timed out. Using fallback questions.');
+      } else {
+        setError('Failed to load survey questions. Using fallback questions.');
+      }
       
       // Set dummy questions as fallback
       console.log('🔄 Setting fallback questions');
