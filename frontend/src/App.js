@@ -215,8 +215,80 @@ const AdaptiveRegistrationForm = () => {
     institution_id: 'default'
   });
   const [surveyData, setSurveyData] = useState({});
-  const [surveyQuestions, setSurveyQuestions] = useState(null);
-  const [questionsLoading, setQuestionsLoading] = useState(true);
+  const [surveyQuestions, setSurveyQuestions] = useState({
+    // Load immediately with comprehensive fallback questions
+    academic: [
+      {
+        id: "grade_level",
+        type: "select",
+        question: "What grade level are you currently in?",
+        options: ["6th Grade", "7th Grade", "8th Grade", "9th Grade", "10th Grade", "11th Grade", "12th Grade", "Other"],
+        required: true
+      },
+      {
+        id: "academic_strengths",
+        type: "multi_select",
+        question: "What subjects do you feel strongest in? (Select all that apply)",
+        options: ["Mathematics", "Science", "English/Language Arts", "History", "Art", "Music", "Physical Education", "Technology"],
+        required: false
+      },
+      {
+        id: "learning_style",
+        type: "select",
+        question: "How do you learn best?",
+        options: ["Visual (seeing pictures, diagrams)", "Auditory (hearing explanations)", "Kinesthetic (hands-on activities)", "Reading/Writing", "Combination"],
+        required: true
+      }
+    ],
+    goals: [
+      {
+        id: "primary_goals",
+        type: "multi_select",
+        question: "What are your main goals for this program? (Select up to 3)",
+        options: ["Improve academic performance", "Build confidence", "Develop life skills", "Improve health and wellness", "Learn stress management", "Prepare for future career"],
+        max_selections: 3,
+        required: true
+      }
+    ],
+    wellness: [
+      {
+        id: "mood_tracking_interest",
+        type: "scale",
+        question: "How interested are you in tracking your daily mood and emotions?",
+        scale: { min: 1, max: 10, labels: { "1": "Not interested", "10": "Very interested" }},
+        required: true
+      }
+    ],
+    nutrition: [
+      {
+        id: "nutrition_knowledge_level",
+        type: "select",
+        question: "How would you rate your current nutrition knowledge?",
+        options: ["Beginner - I'm just starting to learn", "Intermediate - I know the basics", "Advanced - I'm quite knowledgeable"],
+        required: true
+      }
+    ],
+    life_skills: [
+      {
+        id: "life_skills_priorities",
+        type: "multi_select",
+        question: "Which life skills are most important to you right now? (Select up to 4)",
+        options: ["Financial literacy", "Time management", "Communication skills", "Career preparation", "Technology skills", "Leadership"],
+        max_selections: 4,
+        required: true
+      }
+    ],
+    preferences: [
+      {
+        id: "communication_style",
+        type: "select",
+        question: "What communication style do you prefer?",
+        options: ["Formal and structured", "Casual and friendly", "Encouraging and supportive", "Direct and clear"],
+        required: true
+      }
+    ]
+  });
+  const [questionsLoading, setQuestionsLoading] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
