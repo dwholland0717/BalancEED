@@ -323,13 +323,7 @@ metadata:
   run_ui: false
 
 test_plan:
-  current_focus:
-    - "Enhanced Login Page with Registration Link"
-    - "Adaptive Registration System - Multi-Step Form"
-    - "Survey Questions API Integration"
-    - "Personalized Dashboard with Recommendations"
-    - "Registration Form Validation and Logic"
-    - "Enhanced User Profile System"
+  current_focus: []
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
