@@ -880,17 +880,6 @@ async def get_dashboard_data(current_user: User = Depends(get_current_user)):
         "completed_courses": len([c for c in progress_list if c.get("completed_at")])
     }
 
-# Include the router in the main app
-app.include_router(api_router)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
