@@ -1115,13 +1115,13 @@ async def create_adaptive_learning_path(
             "is_active": True
         }
         
-        await db.learning_paths.insert_one(learning_path)
+        result = await db.learning_paths.insert_one(learning_path)
         
         return {
             "learning_path": response,
             "subject_area": subject_area,
             "current_competency": avg_competency,
-            "path_id": str(learning_path.get("_id")) if learning_path.get("_id") else None
+            "path_id": str(result.inserted_id) if result.inserted_id else None
         }
         
     except Exception as e:
