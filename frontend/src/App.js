@@ -175,12 +175,12 @@ const LandingPage = () => {
             >
               🚀 Start Learning Now
             </a>
-            <button 
-              onClick={() => document.getElementById('features').scrollIntoView({ behavior: 'smooth' })}
+            <a 
+              href="/demo"
               className="border-2 border-white text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-white hover:text-purple-900 transition-all duration-200"
             >
-              🎯 Explore Features
-            </button>
+              🎮 Try Demo
+            </a>
           </div>
 
           {/* Stats */}
