@@ -898,6 +898,247 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# YouTube Integration for Motivational Content
+class YouTubeSearchRequest(BaseModel):
+    query: str = Field(..., description="Search query for YouTube videos")
+    max_results: int = Field(default=5, le=10, description="Maximum number of results")
+    category: str = Field(default="motivation", description="Category filter")
+
+@api_router.post("/youtube/search")
+async def search_motivational_videos(
+    request: YouTubeSearchRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Search for motivational YouTube videos"""
+    if not YOUTUBE_API_KEY:
+        raise HTTPException(status_code=500, detail="YouTube API not configured")
+    
+    try:
+        # Search for motivational/educational videos on YouTube
+        search_query = f"{request.query} educational motivation students"
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                "https://www.googleapis.com/youtube/v3/search",
+                params={
+                    "part": "snippet",
+                    "q": search_query,
+                    "type": "video",
+                    "maxResults": request.max_results,
+                    "key": YOUTUBE_API_KEY,
+                    "safeSearch": "strict",
+                    "videoEmbeddable": "true",
+                    "videoSyndicated": "true"
+                }
+            )
+            
+        if response.status_code != 200:
+            raise HTTPException(status_code=500, detail="YouTube API request failed")
+            
+        data = response.json()
+        
+        videos = []
+        for item in data.get("items", []):
+            video = {
+                "id": item["id"]["videoId"],
+                "title": item["snippet"]["title"],
+                "description": item["snippet"]["description"][:200] + "..." if len(item["snippet"]["description"]) > 200 else item["snippet"]["description"],
+                "thumbnail": item["snippet"]["thumbnails"]["medium"]["url"],
+                "channel": item["snippet"]["channelTitle"],
+                "published_at": item["snippet"]["publishedAt"],
+                "embed_url": f"https://www.youtube.com/embed/{item['id']['videoId']}",
+                "watch_url": f"https://www.youtube.com/watch?v={item['id']['videoId']}"
+            }
+            videos.append(video)
+        
+        # Save user's search for personalization
+        await db.user_youtube_searches.insert_one({
+            "user_id": current_user.id,
+            "query": request.query,
+            "category": request.category,
+            "results_count": len(videos),
+            "searched_at": datetime.utcnow()
+        })
+        
+        return {"videos": videos, "total": len(videos)}
+        
+    except Exception as e:
+        logger.error(f"YouTube search failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to search videos")
+
+# AI-Powered Personalized Learning Recommendations
+class UserBehaviorData(BaseModel):
+    completed_lessons: List[str] = []
+    quiz_scores: List[float] = []
+    time_spent_per_lesson: Dict[str, int] = {}
+    preferred_subjects: List[str] = []
+    difficulty_preference: str = "intermediate"
+
+@api_router.post("/ai/personalized-recommendations")
+async def get_personalized_recommendations(
+    current_user: User = Depends(get_current_user)
+):
+    """Get AI-powered personalized learning recommendations based on user behavior"""
+    if not GEMINI_API_KEY:
+        raise HTTPException(status_code=500, detail="AI service not configured")
+    
+    try:
+        # Gather user behavior data
+        user_progress = await db.user_progress.find({"user_id": current_user.id}).to_list(100)
+        quiz_attempts = await db.quiz_attempts.find({"user_id": current_user.id}).to_list(100)
+        
+        # Calculate user's learning patterns
+        completed_lessons = [p["lesson_id"] for p in user_progress if p.get("completed_at")]
+        avg_score = sum([qa["score"] for qa in quiz_attempts]) / len(quiz_attempts) if quiz_attempts else 0
+        
+        # Get preferred subjects based on activity
+        subject_activity = {}
+        for progress in user_progress:
+            course = await db.courses.find_one({"id": progress["course_id"]})
+            if course:
+                subject = course.get("subject_area", "general")
+                subject_activity[subject] = subject_activity.get(subject, 0) + 1
+        
+        preferred_subjects = sorted(subject_activity.keys(), key=lambda x: subject_activity[x], reverse=True)
+        
+        # AI-powered recommendation generation
+        chat = LlmChat(
+            api_key=GEMINI_API_KEY,
+            session_id=f"recommendations_{current_user.id}_{uuid.uuid4()}",
+            system_message="""You are an expert educational advisor who analyzes student learning patterns to provide personalized recommendations. 
+            Focus on identifying strengths, areas for improvement, and optimal learning paths."""
+        ).with_model("gemini", "gemini-2.0-flash")
+        
+        behavior_summary = f"""
+        Student Learning Profile:
+        - Completed Lessons: {len(completed_lessons)}
+        - Average Quiz Score: {avg_score:.1f}%
+        - Preferred Subjects: {', '.join(preferred_subjects[:3])}
+        - Total XP: {current_user.total_xp}
+        - Learning Level: {(current_user.total_xp // 100) + 1}
+        
+        Recent Performance Trends:
+        - Recent quiz scores: {[qa['score'] for qa in quiz_attempts[-5:]]}
+        """
+        
+        prompt = f"""Based on this student's learning profile:
+        {behavior_summary}
+        
+        Provide personalized recommendations in the following format:
+        
+        NEXT_LESSONS: Suggest 3 specific lesson topics that would benefit this student most
+        DIFFICULTY_ADJUSTMENT: Recommend if they should increase/maintain/decrease difficulty and why
+        STUDY_SCHEDULE: Suggest optimal study schedule based on their performance patterns
+        MOTIVATION_TIPS: Provide 2-3 specific motivational strategies for this student
+        SKILL_GAPS: Identify any learning gaps that need attention
+        LEARNING_PATH: Suggest the next 3 courses/modules they should focus on
+        """
+        
+        user_message = UserMessage(text=prompt)
+        response = await chat.send_message(user_message)
+        
+        # Save recommendation for tracking
+        recommendation = {
+            "user_id": current_user.id,
+            "content": response,
+            "generated_at": datetime.utcnow(),
+            "user_stats": {
+                "completed_lessons": len(completed_lessons),
+                "avg_score": avg_score,
+                "preferred_subjects": preferred_subjects[:3],
+                "total_xp": current_user.total_xp
+            }
+        }
+        
+        await db.ai_recommendations.insert_one(recommendation)
+        
+        return {
+            "recommendations": response,
+            "user_stats": recommendation["user_stats"],
+            "generated_at": recommendation["generated_at"]
+        }
+        
+    except Exception as e:
+        logger.error(f"AI recommendation generation failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to generate recommendations")
+
+# Enhanced Learning Path AI
+@api_router.post("/ai/adaptive-learning-path")
+async def create_adaptive_learning_path(
+    subject_area: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Create an AI-powered adaptive learning path that evolves with user progress"""
+    if not GEMINI_API_KEY:
+        raise HTTPException(status_code=500, detail="AI service not configured")
+    
+    try:
+        # Get user's current skill level and preferences
+        user_progress = await db.user_progress.find({"user_id": current_user.id}).to_list(100)
+        quiz_attempts = await db.quiz_attempts.find({"user_id": current_user.id}).to_list(100)
+        
+        # Calculate competency levels
+        subject_scores = {}
+        for attempt in quiz_attempts:
+            lesson = await db.lessons.find_one({"id": attempt["lesson_id"]})
+            if lesson and lesson.get("subject_area") == subject_area:
+                subject_scores.setdefault(subject_area, []).append(attempt["score"])
+        
+        avg_competency = sum(subject_scores.get(subject_area, [0])) / max(len(subject_scores.get(subject_area, [1])), 1)
+        
+        chat = LlmChat(
+            api_key=GEMINI_API_KEY,
+            session_id=f"learning_path_{current_user.id}_{uuid.uuid4()}",
+            system_message="""You are an expert curriculum designer who creates adaptive learning paths. 
+            Design progressive learning sequences that adapt to student performance and ensure mastery before advancement."""
+        ).with_model("gemini", "gemini-2.0-flash")
+        
+        prompt = f"""Create an adaptive learning path for {subject_area} for a student with:
+        - Current competency level: {avg_competency:.1f}% in {subject_area}
+        - Total learning experience: {current_user.total_xp} XP
+        - Completed lessons: {len(user_progress)}
+        
+        Design a 12-lesson progressive path with:
+        1. Lesson titles and objectives
+        2. Prerequisites for each lesson
+        3. Difficulty progression (beginner -> advanced)
+        4. Adaptive checkpoints where difficulty adjusts based on performance
+        5. Estimated time commitments
+        6. Success criteria for advancement
+        
+        Format as:
+        LESSON_1: [Title] | Prerequisites: [list] | Difficulty: [level] | Time: [minutes] | Success Criteria: [criteria]
+        (continue for all 12 lessons)
+        
+        ADAPTIVE_RULES: Explain how the path adapts based on quiz scores and completion time
+        """
+        
+        user_message = UserMessage(text=prompt)
+        response = await chat.send_message(user_message)
+        
+        # Save the learning path
+        learning_path = {
+            "user_id": current_user.id,
+            "subject_area": subject_area,
+            "content": response,
+            "current_competency": avg_competency,
+            "generated_at": datetime.utcnow(),
+            "is_active": True
+        }
+        
+        await db.learning_paths.insert_one(learning_path)
+        
+        return {
+            "learning_path": response,
+            "subject_area": subject_area,
+            "current_competency": avg_competency,
+            "path_id": learning_path.get("_id")
+        }
+        
+    except Exception as e:
+        logger.error(f"Learning path generation failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to create learning path")
+
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
