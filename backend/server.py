@@ -15,6 +15,7 @@ import bcrypt
 import jwt
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 import asyncio
+import httpx
 
 
 ROOT_DIR = Path(__file__).parent
