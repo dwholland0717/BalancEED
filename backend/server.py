@@ -13,6 +13,8 @@ from datetime import datetime, timedelta
 from enum import Enum
 import bcrypt
 import jwt
+from emergentintegrations.llm.chat import LlmChat, UserMessage
+import asyncio
 
 
 ROOT_DIR = Path(__file__).parent
@@ -34,6 +36,9 @@ security = HTTPBearer()
 JWT_SECRET = "balanceed_learning_secret_key_2025"
 JWT_ALGORITHM = "HS256"
 
+# AI Configuration
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
+
 # Enums
 class DifficultyLevel(str, Enum):
     BEGINNER = "beginner"
@@ -46,12 +51,33 @@ class LessonType(str, Enum):
     INTERACTIVE = "interactive"
     QUIZ = "quiz"
     ASSESSMENT = "assessment"
+    AI_GENERATED = "ai_generated"
 
 class QuestionType(str, Enum):
     MULTIPLE_CHOICE = "multiple_choice"
     TRUE_FALSE = "true_false"
     FILL_BLANK = "fill_blank"
     ESSAY = "essay"
+
+class SubjectArea(str, Enum):
+    ASVAB_MATH = "asvab_math"
+    ASVAB_READING = "asvab_reading"
+    ASVAB_SCIENCE = "asvab_science"
+    ASVAB_MECHANICAL = "asvab_mechanical"
+    GENERAL_MATH = "general_math"
+    ENGLISH = "english"
+    SCIENCE = "science"
+    HISTORY = "history"
+    COMPUTER_SCIENCE = "computer_science"
+    BUSINESS = "business"
+    LIFE_SKILLS = "life_skills"
+
+class PrizeType(str, Enum):
+    HOMEWORK_PASS = "homework_pass"
+    EARLY_DISMISSAL = "early_dismissal"
+    PREMIUM_MEAL = "premium_meal"
+    AMUSEMENT_PARK = "amusement_park"
+    CUSTOM = "custom"
 
 # User Models
 class User(BaseModel):
@@ -71,6 +97,14 @@ class User(BaseModel):
     last_activity_date: Optional[datetime] = None
     completed_courses: List[str] = []
     achievements: List[str] = []
+    # Social features
+    friends: List[str] = []
+    study_groups: List[str] = []
+    # Personalization
+    preferred_subjects: List[SubjectArea] = []
+    learning_style: Optional[str] = None
+    music_preferences: List[str] = []
+    motivational_content: List[str] = []
 
 class UserCreate(BaseModel):
     email: EmailStr
@@ -95,6 +129,10 @@ class UserProfile(BaseModel):
     longest_streak: int
     completed_courses: List[str]
     achievements: List[str]
+    friends: List[str]
+    study_groups: List[str]
+    preferred_subjects: List[SubjectArea]
+    learning_style: Optional[str]
 
 # Course Models
 class Course(BaseModel):
@@ -103,6 +141,7 @@ class Course(BaseModel):
     description: str
     instructor: str
     difficulty: DifficultyLevel
+    subject_area: SubjectArea
     estimated_duration: int  # in minutes
     thumbnail_url: Optional[str] = None
     tags: List[str] = []
@@ -113,17 +152,125 @@ class Course(BaseModel):
     enrollment_count: int = 0
     rating: float = 0.0
     xp_reward: int = 100
+    # AI-generated content flag
+    is_ai_generated: bool = False
 
 class CourseCreate(BaseModel):
     title: str
     description: str
     instructor: str
     difficulty: DifficultyLevel
+    subject_area: SubjectArea
     estimated_duration: int
     thumbnail_url: Optional[str] = None
     tags: List[str] = []
 
-# Lesson Models
+# AI Content Generation Models
+class AIContentRequest(BaseModel):
+    subject_area: SubjectArea
+    difficulty: DifficultyLevel
+    topic: str
+    learning_objectives: List[str]
+    duration_minutes: int = 30
+
+class AIAssessmentRequest(BaseModel):
+    lesson_id: str
+    question_count: int = 10
+    difficulty: DifficultyLevel
+    question_types: List[QuestionType] = [QuestionType.MULTIPLE_CHOICE]
+
+# Social Models
+class StudyGroup(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    description: str
+    creator_id: str
+    members: List[str] = []
+    course_id: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    is_private: bool = False
+
+class StudyGroupCreate(BaseModel):
+    name: str
+    description: str
+    course_id: Optional[str] = None
+    is_private: bool = False
+
+class Journal(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    title: str
+    content: str
+    mood: Optional[str] = None
+    study_session_rating: Optional[int] = None
+    goals: List[str] = []
+    achievements_today: List[str] = []
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    tags: List[str] = []
+
+class JournalCreate(BaseModel):
+    title: str
+    content: str
+    mood: Optional[str] = None
+    study_session_rating: Optional[int] = None
+    goals: List[str] = []
+    achievements_today: List[str] = []
+    tags: List[str] = []
+
+class MusicPlaylist(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    name: str
+    description: str
+    frequency_type: str  # e.g., "focus", "relaxation", "motivation"
+    tracks: List[Dict[str, Any]] = []  # YouTube links and metadata
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    is_public: bool = False
+
+class PlaylistCreate(BaseModel):
+    name: str
+    description: str
+    frequency_type: str
+    tracks: List[Dict[str, Any]] = []
+    is_public: bool = False
+
+# Gamification Models
+class Prize(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    description: str
+    prize_type: PrizeType
+    cost_coins: int
+    instructor_id: str
+    available_quantity: int = -1  # -1 for unlimited
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    is_active: bool = True
+
+class PrizeCreate(BaseModel):
+    name: str
+    description: str
+    prize_type: PrizeType
+    cost_coins: int
+    available_quantity: int = -1
+
+class PrizeRedemption(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    prize_id: str
+    redeemed_at: datetime = Field(default_factory=datetime.utcnow)
+    status: str = "pending"  # pending, approved, used
+    instructor_notes: Optional[str] = None
+
+class CoinTransaction(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    amount: int  # positive for earning, negative for spending
+    transaction_type: str  # "lesson_completion", "quiz_pass", "streak_bonus", "prize_redemption"
+    description: str
+    related_id: Optional[str] = None  # lesson_id, quiz_id, prize_id, etc.
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+# Lesson Models (Extended)
 class Lesson(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     course_id: str
@@ -135,8 +282,12 @@ class Lesson(BaseModel):
     video_url: Optional[str] = None
     duration: int  # in seconds
     xp_reward: int = 10
+    coin_reward: int = 5  # gambling-style coin system
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+    # AI-generated content
+    is_ai_generated: bool = False
+    ai_generated_metadata: Optional[Dict[str, Any]] = None
 
 class LessonCreate(BaseModel):
     course_id: str
@@ -148,8 +299,9 @@ class LessonCreate(BaseModel):
     video_url: Optional[str] = None
     duration: int
     xp_reward: int = 10
+    coin_reward: int = 5
 
-# Progress Models
+# Progress Models (Extended)
 class UserProgress(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     user_id: str
@@ -162,13 +314,17 @@ class UserProgress(BaseModel):
     last_accessed: datetime = Field(default_factory=datetime.utcnow)
     completed_at: Optional[datetime] = None
     time_spent: int = 0  # in seconds
+    # Performance analytics
+    average_score: float = 0.0
+    best_score: float = 0.0
+    total_attempts: int = 0
 
 class ProgressUpdate(BaseModel):
     lesson_id: str
     progress_percentage: float
     time_spent: int
 
-# Quiz Models
+# Quiz Models (Extended)
 class Question(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     lesson_id: str
@@ -178,6 +334,9 @@ class Question(BaseModel):
     correct_answer: str
     explanation: Optional[str] = None
     points: int = 10
+    difficulty: DifficultyLevel = DifficultyLevel.BEGINNER
+    # AI-generated content
+    is_ai_generated: bool = False
 
 class QuestionCreate(BaseModel):
     lesson_id: str
@@ -187,6 +346,7 @@ class QuestionCreate(BaseModel):
     correct_answer: str
     explanation: Optional[str] = None
     points: int = 10
+    difficulty: DifficultyLevel = DifficultyLevel.BEGINNER
 
 class QuizAttempt(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -195,6 +355,7 @@ class QuizAttempt(BaseModel):
     answers: Dict[str, str]  # question_id: user_answer
     score: float
     total_points: int
+    coins_earned: int = 0  # gambling-style reward
     attempted_at: datetime = Field(default_factory=datetime.utcnow)
     time_taken: int  # in seconds
 
@@ -202,24 +363,6 @@ class QuizSubmission(BaseModel):
     lesson_id: str
     answers: Dict[str, str]
     time_taken: int
-
-# Gamification Models
-class Achievement(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    name: str
-    description: str
-    icon: str
-    condition: str  # e.g., "complete_5_courses", "maintain_7_day_streak"
-    xp_reward: int
-    badge_color: str
-
-class DailyGoal(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    user_id: str
-    date: datetime
-    target_xp: int = 50
-    achieved_xp: int = 0
-    completed: bool = False
 
 # Utility Functions
 def hash_password(password: str) -> str:
@@ -256,12 +399,168 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     
     return User(**user)
 
+# AI Content Generation Functions
+async def generate_lesson_content(request: AIContentRequest) -> Dict[str, Any]:
+    """Generate AI-powered lesson content using Gemini"""
+    if not GEMINI_API_KEY:
+        raise HTTPException(status_code=500, detail="AI service not configured")
+    
+    try:
+        chat = LlmChat(
+            api_key=GEMINI_API_KEY,
+            session_id=f"lesson_generation_{uuid.uuid4()}",
+            system_message=f"""You are an expert educational content creator specializing in {request.subject_area.value} for high school and college students. 
+            Create comprehensive, engaging learning content that is appropriate for {request.difficulty.value} level learners.
+            Focus on practical applications and real-world examples that resonate with students."""
+        ).with_model("gemini", "gemini-2.0-flash")
+        
+        objectives_text = "\n".join([f"- {obj}" for obj in request.learning_objectives])
+        
+        prompt = f"""Create a comprehensive learning module on "{request.topic}" for {request.subject_area.value} at {request.difficulty.value} level.
+
+Learning Objectives:
+{objectives_text}
+
+Duration: {request.duration_minutes} minutes
+
+Please provide:
+1. A clear, engaging lesson title
+2. A brief description (2-3 sentences)
+3. Detailed lesson content with explanations, examples, and practical applications
+4. Key takeaways and summary points
+5. Suggested follow-up activities or practice exercises
+
+Make the content engaging and appropriate for high school/college students. Use a conversational but educational tone."""
+
+        user_message = UserMessage(text=prompt)
+        response = await chat.send_message(user_message)
+        
+        return {
+            "content": response,
+            "metadata": {
+                "generated_at": datetime.utcnow().isoformat(),
+                "subject_area": request.subject_area.value,
+                "difficulty": request.difficulty.value,
+                "topic": request.topic,
+                "duration_minutes": request.duration_minutes
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"AI content generation failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to generate content")
+
+async def generate_assessment_questions(request: AIAssessmentRequest) -> List[Dict[str, Any]]:
+    """Generate AI-powered assessment questions"""
+    if not GEMINI_API_KEY:
+        raise HTTPException(status_code=500, detail="AI service not configured")
+    
+    try:
+        # Get lesson content for context
+        lesson = await db.lessons.find_one({"id": request.lesson_id})
+        if not lesson:
+            raise HTTPException(status_code=404, detail="Lesson not found")
+        
+        chat = LlmChat(
+            api_key=GEMINI_API_KEY,
+            session_id=f"assessment_generation_{uuid.uuid4()}",
+            system_message="""You are an expert assessment designer. Create fair, comprehensive questions that accurately measure student understanding. 
+            Ensure questions are clear, have unambiguous correct answers, and include helpful explanations."""
+        ).with_model("gemini", "gemini-2.0-flash")
+        
+        question_types_text = ", ".join([qt.value for qt in request.question_types])
+        
+        prompt = f"""Based on this lesson content: "{lesson['title']}: {lesson['content'][:500]}..."
+
+Create {request.question_count} assessment questions at {request.difficulty.value} level.
+Question types to include: {question_types_text}
+
+For each question, provide:
+1. Question text
+2. Question type (multiple_choice, true_false, fill_blank, or essay)
+3. Options (for multiple choice): exactly 4 options labeled A, B, C, D
+4. Correct answer (for multiple choice, use the letter; for true/false use "True" or "False")
+5. Explanation of why the answer is correct
+6. Points value (10 for basic questions, 15 for intermediate, 20 for advanced)
+
+Format each question as:
+QUESTION: [question text]
+TYPE: [question_type]
+OPTIONS: [A, B, C, D for multiple choice]
+CORRECT: [correct answer]
+EXPLANATION: [explanation]
+POINTS: [point value]
+---"""
+
+        user_message = UserMessage(text=prompt)
+        response = await chat.send_message(user_message)
+        
+        # Parse the AI response into structured questions
+        questions = []
+        question_blocks = response.split("---")
+        
+        for block in question_blocks:
+            if not block.strip():
+                continue
+                
+            lines = [line.strip() for line in block.strip().split('\n') if line.strip()]
+            question_data = {}
+            
+            for line in lines:
+                if line.startswith("QUESTION:"):
+                    question_data["question_text"] = line.replace("QUESTION:", "").strip()
+                elif line.startswith("TYPE:"):
+                    question_data["question_type"] = line.replace("TYPE:", "").strip()
+                elif line.startswith("OPTIONS:"):
+                    options_text = line.replace("OPTIONS:", "").strip()
+                    question_data["options"] = [opt.strip() for opt in options_text.split(",")]
+                elif line.startswith("CORRECT:"):
+                    question_data["correct_answer"] = line.replace("CORRECT:", "").strip()
+                elif line.startswith("EXPLANATION:"):
+                    question_data["explanation"] = line.replace("EXPLANATION:", "").strip()
+                elif line.startswith("POINTS:"):
+                    try:
+                        question_data["points"] = int(line.replace("POINTS:", "").strip())
+                    except:
+                        question_data["points"] = 10
+            
+            if len(question_data) >= 4:  # Minimum required fields
+                question_data["id"] = str(uuid.uuid4())
+                question_data["lesson_id"] = request.lesson_id
+                question_data["difficulty"] = request.difficulty.value
+                question_data["is_ai_generated"] = True
+                questions.append(question_data)
+        
+        return questions[:request.question_count]  # Ensure we don't exceed requested count
+        
+    except Exception as e:
+        logger.error(f"AI assessment generation failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to generate assessment")
+
+async def award_coins(user_id: str, amount: int, transaction_type: str, description: str, related_id: Optional[str] = None):
+    """Award coins to user and record transaction"""
+    # Update user's coin balance
+    await db.users.update_one(
+        {"id": user_id},
+        {"$inc": {"total_coins": amount}}
+    )
+    
+    # Record transaction
+    transaction = CoinTransaction(
+        user_id=user_id,
+        amount=amount,
+        transaction_type=transaction_type,
+        description=description,
+        related_id=related_id
+    )
+    await db.coin_transactions.insert_one(transaction.dict())
+
 # API Routes
 @api_router.get("/")
 async def root():
     return {"message": "Welcome to BalancEED Learning Platform API"}
 
-# Authentication Routes
+# Authentication Routes (keeping existing routes)
 @api_router.post("/auth/register", response_model=Dict[str, Any])
 async def register_user(user_data: UserCreate):
     # Check if user already exists
@@ -273,7 +572,7 @@ async def register_user(user_data: UserCreate):
     if existing_username:
         raise HTTPException(status_code=400, detail="Username already taken")
     
-    # Create new user
+    # Create new user with extended fields
     password_hash = hash_password(user_data.password)
     user = User(
         email=user_data.email,
