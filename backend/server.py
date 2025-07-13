@@ -1121,7 +1121,7 @@ async def create_adaptive_learning_path(
             "learning_path": response,
             "subject_area": subject_area,
             "current_competency": avg_competency,
-            "path_id": learning_path.get("_id")
+            "path_id": str(learning_path.get("_id")) if learning_path.get("_id") else None
         }
         
     except Exception as e:
