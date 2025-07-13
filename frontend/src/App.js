@@ -1775,6 +1775,7 @@ function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<LandingPage />} />
+            <Route path="/demo" element={<DemoPage />} />
             <Route path="/login" element={
               <PublicRoute>
                 <Login />
