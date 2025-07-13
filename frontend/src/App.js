@@ -352,8 +352,304 @@ const Register = () => {
   );
 };
 
-// Dashboard Component
-const Dashboard = () => {
+// Landing Page Component
+const LandingPage = () => {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+      {/* Navigation */}
+      <nav className="relative z-10 px-6 py-4">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <div className="w-10 h-10 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center">
+              <span className="text-2xl">🎓</span>
+            </div>
+            <h1 className="text-2xl font-bold text-white">BalancEED</h1>
+          </div>
+          <div className="flex space-x-4">
+            <a href="/login" className="text-white hover:text-yellow-300 transition-colors">
+              Sign In
+            </a>
+            <a 
+              href="/register" 
+              className="bg-gradient-to-r from-yellow-400 to-orange-500 text-black px-6 py-2 rounded-lg font-semibold hover:from-yellow-500 hover:to-orange-600 transition-all duration-200"
+            >
+              Get Started
+            </a>
+          </div>
+        </div>
+      </nav>
+
+      {/* Hero Section */}
+      <div className="relative px-6 py-20">
+        <div className="max-w-7xl mx-auto text-center">
+          <h2 className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight">
+            Level Up Your
+            <span className="bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent block">
+              Learning Game
+            </span>
+          </h2>
+          <p className="text-xl md:text-2xl text-gray-300 mb-12 max-w-4xl mx-auto leading-relaxed">
+            The ultimate learning platform for high school and college students. 
+            Combine ASVAB prep, academic success, and social learning with AI-powered content, 
+            gamification, and real rewards.
+          </p>
+          
+          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-16">
+            <a 
+              href="/register"
+              className="bg-gradient-to-r from-yellow-400 to-orange-500 text-black px-8 py-4 rounded-xl font-bold text-lg hover:from-yellow-500 hover:to-orange-600 transform hover:scale-105 transition-all duration-200 shadow-2xl"
+            >
+              🚀 Start Learning Now
+            </a>
+            <a 
+              href="#features"
+              className="border-2 border-white text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-white hover:text-purple-900 transition-all duration-200"
+            >
+              🎯 Explore Features
+            </a>
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
+            <div className="text-center">
+              <div className="text-3xl md:text-4xl font-bold text-yellow-400 mb-2">AI-Powered</div>
+              <div className="text-gray-300">Smart Content</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl md:text-4xl font-bold text-green-400 mb-2">Gamified</div>
+              <div className="text-gray-300">Learning Path</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl md:text-4xl font-bold text-blue-400 mb-2">Social</div>
+              <div className="text-gray-300">Study Groups</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl md:text-4xl font-bold text-purple-400 mb-2">Real</div>
+              <div className="text-gray-300">Prizes</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Floating Elements */}
+        <div className="absolute top-20 left-10 text-6xl animate-bounce opacity-20">🎮</div>
+        <div className="absolute top-40 right-20 text-5xl animate-pulse opacity-20">⭐</div>
+        <div className="absolute bottom-20 left-20 text-4xl animate-spin opacity-20">🏆</div>
+      </div>
+
+      {/* Features Section */}
+      <div id="features" className="bg-black bg-opacity-30 py-20">
+        <div className="max-w-7xl mx-auto px-6">
+          <h3 className="text-4xl md:text-5xl font-bold text-center text-white mb-16">
+            Why Students <span className="text-yellow-400">Love</span> BalancEED
+          </h3>
+          
+          <div className="grid md:grid-cols-3 gap-8">
+            {/* Feature 1 */}
+            <div className="bg-white bg-opacity-10 backdrop-blur-lg rounded-2xl p-8 hover:bg-opacity-20 transition-all duration-300 transform hover:scale-105">
+              <div className="text-5xl mb-4">🤖</div>
+              <h4 className="text-2xl font-bold text-white mb-4">AI-Powered Learning</h4>
+              <p className="text-gray-300 mb-6">
+                Personalized content generation with Google Gemini AI. Get custom lessons, 
+                quizzes, and assessments tailored to your learning style and pace.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <span className="bg-purple-500 text-white px-3 py-1 rounded-full text-sm">ASVAB Prep</span>
+                <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm">Smart Assessments</span>
+                <span className="bg-green-500 text-white px-3 py-1 rounded-full text-sm">Adaptive Content</span>
+              </div>
+            </div>
+
+            {/* Feature 2 */}
+            <div className="bg-white bg-opacity-10 backdrop-blur-lg rounded-2xl p-8 hover:bg-opacity-20 transition-all duration-300 transform hover:scale-105">
+              <div className="text-5xl mb-4">🎮</div>
+              <h4 className="text-2xl font-bold text-white mb-4">Gamified Experience</h4>
+              <p className="text-gray-300 mb-6">
+                Earn XP, maintain streaks, level up, and collect coins! Inspired by gaming mechanics 
+                to make learning addictive and fun.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <span className="bg-yellow-500 text-white px-3 py-1 rounded-full text-sm">XP Points</span>
+                <span className="bg-orange-500 text-white px-3 py-1 rounded-full text-sm">Daily Streaks</span>
+                <span className="bg-red-500 text-white px-3 py-1 rounded-full text-sm">Level System</span>
+              </div>
+            </div>
+
+            {/* Feature 3 */}
+            <div className="bg-white bg-opacity-10 backdrop-blur-lg rounded-2xl p-8 hover:bg-opacity-20 transition-all duration-300 transform hover:scale-105">
+              <div className="text-5xl mb-4">🏆</div>
+              <h4 className="text-2xl font-bold text-white mb-4">Real Rewards</h4>
+              <p className="text-gray-300 mb-6">
+                Redeem coins for actual prizes! Homework passes, early dismissal, 
+                premium meals, and even amusement park tickets.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <span className="bg-green-600 text-white px-3 py-1 rounded-full text-sm">Homework Pass</span>
+                <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm">Early Dismissal</span>
+                <span className="bg-purple-600 text-white px-3 py-1 rounded-full text-sm">Fun Prizes</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Social Features */}
+      <div className="py-20">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid md:grid-cols-2 gap-16 items-center">
+            <div>
+              <h3 className="text-4xl md:text-5xl font-bold text-white mb-6">
+                Learn Together, <span className="text-green-400">Grow Together</span>
+              </h3>
+              <p className="text-xl text-gray-300 mb-8">
+                Join study groups, share journals, create motivational playlists, 
+                and connect with peers on your learning journey. Inspired by social 
+                platforms that students actually use.
+              </p>
+              <div className="space-y-4">
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-gradient-to-r from-pink-500 to-rose-500 rounded-full flex items-center justify-center">
+                    <span className="text-2xl">👥</span>
+                  </div>
+                  <div>
+                    <h5 className="text-white font-semibold">Study Groups</h5>
+                    <p className="text-gray-400">Collaborate and learn with classmates</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center">
+                    <span className="text-2xl">📝</span>
+                  </div>
+                  <div>
+                    <h5 className="text-white font-semibold">Personal Journals</h5>
+                    <p className="text-gray-400">Reflect on your learning journey</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full flex items-center justify-center">
+                    <span className="text-2xl">🎵</span>
+                  </div>
+                  <div>
+                    <h5 className="text-white font-semibold">Focus Playlists</h5>
+                    <p className="text-gray-400">Curated music for optimal learning</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="relative">
+              <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl p-8 transform rotate-3 hover:rotate-0 transition-transform duration-300">
+                <div className="bg-white rounded-xl p-6">
+                  <h4 className="text-gray-800 font-bold text-xl mb-4">Study Group: ASVAB Warriors 💪</h4>
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold">J</div>
+                      <span className="text-gray-700">Just completed Math Module 3! 🎉</span>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white text-sm font-bold">M</div>
+                      <span className="text-gray-700">On a 7-day streak! 🔥</span>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white text-sm font-bold">S</div>
+                      <span className="text-gray-700">Who wants to tackle Science together? 🧬</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Curriculum Preview */}
+      <div className="bg-gradient-to-r from-indigo-900 to-purple-900 py-20">
+        <div className="max-w-7xl mx-auto px-6 text-center">
+          <h3 className="text-4xl md:text-5xl font-bold text-white mb-6">
+            Complete <span className="text-yellow-400">Curriculum</span> Coverage
+          </h3>
+          <p className="text-xl text-gray-300 mb-12 max-w-3xl mx-auto">
+            From ASVAB preparation to general education requirements, 
+            we've got everything you need to succeed in high school and college.
+          </p>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+            {[
+              { icon: "📊", title: "ASVAB Math", color: "from-blue-500 to-cyan-500" },
+              { icon: "📚", title: "Reading", color: "from-green-500 to-emerald-500" },
+              { icon: "🔬", title: "Science", color: "from-purple-500 to-violet-500" },
+              { icon: "⚙️", title: "Mechanical", color: "from-orange-500 to-red-500" },
+              { icon: "💼", title: "Business", color: "from-indigo-500 to-blue-500" },
+              { icon: "💡", title: "Life Skills", color: "from-pink-500 to-rose-500" }
+            ].map((subject, index) => (
+              <div key={index} className="group cursor-pointer">
+                <div className={`bg-gradient-to-r ${subject.color} rounded-2xl p-6 transform group-hover:scale-110 transition-all duration-300 shadow-lg`}>
+                  <div className="text-4xl mb-3">{subject.icon}</div>
+                  <h5 className="text-white font-bold">{subject.title}</h5>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* CTA Section */}
+      <div className="py-20">
+        <div className="max-w-4xl mx-auto text-center px-6">
+          <h3 className="text-4xl md:text-6xl font-bold text-white mb-6">
+            Ready to <span className="text-yellow-400">Transform</span> Your Learning?
+          </h3>
+          <p className="text-xl text-gray-300 mb-12">
+            Join thousands of students who are already leveling up their education with BalancEED.
+          </p>
+          
+          <div className="bg-white bg-opacity-10 backdrop-blur-lg rounded-2xl p-8 mb-12">
+            <div className="grid md:grid-cols-3 gap-8 text-center">
+              <div>
+                <div className="text-3xl font-bold text-yellow-400 mb-2">Free to Start</div>
+                <div className="text-gray-300">No credit card required</div>
+              </div>
+              <div>
+                <div className="text-3xl font-bold text-green-400 mb-2">Instant Access</div>
+                <div className="text-gray-300">Start learning immediately</div>
+              </div>
+              <div>
+                <div className="text-3xl font-bold text-blue-400 mb-2">Real Results</div>
+                <div className="text-gray-300">Proven learning outcomes</div>
+              </div>
+            </div>
+          </div>
+          
+          <a 
+            href="/register"
+            className="inline-block bg-gradient-to-r from-yellow-400 to-orange-500 text-black px-12 py-6 rounded-2xl font-bold text-xl hover:from-yellow-500 hover:to-orange-600 transform hover:scale-105 transition-all duration-200 shadow-2xl"
+          >
+            🎓 Start Your Journey Today
+          </a>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <footer className="bg-black bg-opacity-50 py-12">
+        <div className="max-w-7xl mx-auto px-6 text-center">
+          <div className="flex items-center justify-center space-x-2 mb-4">
+            <div className="w-8 h-8 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center">
+              <span className="text-lg">🎓</span>
+            </div>
+            <h1 className="text-xl font-bold text-white">BalancEED</h1>
+          </div>
+          <p className="text-gray-400 mb-4">
+            Empowering students through AI-driven, gamified learning experiences.
+          </p>
+          <div className="flex justify-center space-x-6 text-gray-400">
+            <a href="/about" className="hover:text-white transition-colors">About</a>
+            <a href="/privacy" className="hover:text-white transition-colors">Privacy</a>
+            <a href="/terms" className="hover:text-white transition-colors">Terms</a>
+            <a href="/contact" className="hover:text-white transition-colors">Contact</a>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+};
   const [dashboardData, setDashboardData] = useState(null);
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
