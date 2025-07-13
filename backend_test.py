@@ -699,7 +699,7 @@ class BalancEEDTester:
         print(f"Testing against: {API_BASE}")
         print("=" * 60)
         
-        # Test sequence
+        # Test sequence - Core features first, then new AI/YouTube features
         tests = [
             self.test_api_health,
             self.test_user_registration,
@@ -716,7 +716,13 @@ class BalancEEDTester:
             self.test_get_lesson_questions,
             self.test_submit_quiz,
             self.test_dashboard_data,
-            self.test_duplicate_enrollment
+            self.test_duplicate_enrollment,
+            # New AI and YouTube integration tests
+            self.test_youtube_search,
+            self.test_youtube_search_tracking,
+            self.test_ai_personalized_recommendations,
+            self.test_adaptive_learning_path,
+            self.test_ai_integration_with_user_data
         ]
         
         passed = 0
