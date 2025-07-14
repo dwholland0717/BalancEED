@@ -294,11 +294,8 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Learning Dashboard UI"
     - "YouTube Integration Frontend"
     - "AI Recommendations UI"
-    - "Course Browsing Interface"
-    - "Gamification UI Elements"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
