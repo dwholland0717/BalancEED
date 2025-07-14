@@ -1706,7 +1706,350 @@ const Register = () => {
 };
 
 // Enhanced Demo Page
-const DemoPage = () => {
+// YouTube Integration Component for Motivational Content
+const YouTubeMotivationDemo = ({ simulateEarnCoins }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [videos, setVideos] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const searchMotivationalVideos = async (query) => {
+    setLoading(true);
+    setError('');
+    
+    try {
+      const response = await axios.post(`${API}/youtube/search`, {
+        query: query || 'study motivation for students',
+        max_results: 6,
+        category: 'motivation'
+      });
+      
+      setVideos(response.data.videos);
+      simulateEarnCoins(10); // Reward for searching motivational content
+    } catch (err) {
+      setError('Failed to search videos. Please try again.');
+      console.error('YouTube search error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // Load default motivational videos on component mount
+    searchMotivationalVideos('study motivation productivity tips');
+  }, []);
+
+  return (
+    <div className="text-center py-20">
+      <div className="text-6xl mb-4">🎬</div>
+      <h2 className="text-3xl font-bold mb-4">Motivational Content Hub</h2>
+      <p className="text-gray-600 mb-8">Discover inspiring videos to fuel your learning journey</p>
+      
+      {/* Search Bar */}
+      <div className="max-w-2xl mx-auto mb-8">
+        <div className="flex gap-4">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search for motivational content..."
+            className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            onKeyPress={(e) => e.key === 'Enter' && searchMotivationalVideos(searchQuery)}
+          />
+          <button
+            onClick={() => searchMotivationalVideos(searchQuery)}
+            disabled={loading}
+            className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50"
+          >
+            {loading ? '🔄' : '🔍'} Search
+          </button>
+        </div>
+      </div>
+
+      {/* Quick Search Categories */}
+      <div className="flex flex-wrap justify-center gap-3 mb-8">
+        {['Study Motivation', 'Success Stories', 'Productivity Tips', 'Focus Music', 'Goal Setting'].map((category) => (
+          <button
+            key={category}
+            onClick={() => searchMotivationalVideos(category)}
+            className="bg-gray-100 text-gray-700 px-4 py-2 rounded-full hover:bg-gray-200 transition-colors"
+          >
+            {category}
+          </button>
+        ))}
+      </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="max-w-2xl mx-auto mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+          {error}
+        </div>
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <div className="text-center py-8">
+          <div className="text-4xl mb-4">🔄</div>
+          <p className="text-gray-600">Searching for motivational content...</p>
+        </div>
+      )}
+
+      {/* Videos Grid */}
+      {videos.length > 0 && !loading && (
+        <div className="max-w-6xl mx-auto">
+          <h3 className="text-xl font-bold mb-6 text-gray-800">
+            🎯 Found {videos.length} motivational videos for you!
+          </h3>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {videos.map((video) => (
+              <div key={video.id} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+                <div className="relative pb-56">
+                  <iframe
+                    src={video.embed_url}
+                    title={video.title}
+                    className="absolute top-0 left-0 w-full h-full"
+                    frameBorder="0"
+                    allowFullScreen
+                  />
+                </div>
+                <div className="p-4">
+                  <h4 className="font-bold text-sm mb-2 line-clamp-2">{video.title}</h4>
+                  <p className="text-xs text-gray-600 mb-2">by {video.channel}</p>
+                  <p className="text-xs text-gray-500 line-clamp-2">{video.description}</p>
+                  <div className="mt-3 flex justify-between items-center">
+                    <a 
+                      href={video.watch_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-500 hover:text-blue-700 text-xs font-medium"
+                    >
+                      Watch on YouTube →
+                    </a>
+                    <button
+                      onClick={() => simulateEarnCoins(5)}
+                      className="bg-green-500 text-white px-3 py-1 rounded text-xs hover:bg-green-600 transition-colors"
+                    >
+                      +5 XP Watched
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Default message when no videos */}
+      {videos.length === 0 && !loading && !error && (
+        <div className="text-center py-8">
+          <div className="text-4xl mb-4">🎯</div>
+          <p className="text-gray-600">Search for motivational content to get started!</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// AI Recommendations Component
+const AIRecommendationsDemo = ({ simulateEarnCoins }) => {
+  const [recommendations, setRecommendations] = useState(null);
+  const [learningPath, setLearningPath] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('recommendations');
+  const [selectedSubject, setSelectedSubject] = useState('computer_science');
+
+  const getPersonalizedRecommendations = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.post(`${API}/ai/personalized-recommendations`);
+      setRecommendations(response.data);
+      simulateEarnCoins(15); // Reward for using AI recommendations
+    } catch (err) {
+      console.error('AI recommendations error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const generateLearningPath = async (subject) => {
+    setLoading(true);
+    try {
+      const response = await axios.post(`${API}/ai/adaptive-learning-path?subject_area=${subject}`);
+      setLearningPath(response.data);
+      simulateEarnCoins(20); // Reward for generating learning path
+    } catch (err) {
+      console.error('Learning path error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const parseRecommendations = (content) => {
+    const sections = {};
+    const lines = content.split('\n');
+    let currentSection = '';
+    
+    lines.forEach(line => {
+      if (line.includes('NEXT_LESSONS:') || line.includes('DIFFICULTY_ADJUSTMENT:') || 
+          line.includes('STUDY_SCHEDULE:') || line.includes('MOTIVATION_TIPS:') ||
+          line.includes('SKILL_GAPS:') || line.includes('LEARNING_PATH:')) {
+        currentSection = line.split(':')[0].trim();
+        sections[currentSection] = [];
+      } else if (currentSection && line.trim()) {
+        sections[currentSection].push(line.trim());
+      }
+    });
+    
+    return sections;
+  };
+
+  return (
+    <div className="py-20">
+      <div className="text-center mb-8">
+        <div className="text-6xl mb-4">🤖</div>
+        <h2 className="text-3xl font-bold mb-4">AI-Powered Learning Magic</h2>
+        <p className="text-gray-600 mb-8">Get personalized recommendations and adaptive learning paths</p>
+      </div>
+
+      {/* Tabs */}
+      <div className="max-w-4xl mx-auto mb-8">
+        <div className="flex justify-center space-x-1 bg-gray-100 p-1 rounded-lg">
+          <button
+            onClick={() => setActiveTab('recommendations')}
+            className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors ${
+              activeTab === 'recommendations' 
+                ? 'bg-white text-blue-600 shadow' 
+                : 'text-gray-600 hover:text-gray-800'
+            }`}
+          >
+            🎯 Personal Recommendations
+          </button>
+          <button
+            onClick={() => setActiveTab('learning-path')}
+            className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors ${
+              activeTab === 'learning-path' 
+                ? 'bg-white text-blue-600 shadow' 
+                : 'text-gray-600 hover:text-gray-800'
+            }`}
+          >
+            🗺️ Adaptive Learning Path
+          </button>
+        </div>
+      </div>
+
+      <div className="max-w-6xl mx-auto">
+        {/* Recommendations Tab */}
+        {activeTab === 'recommendations' && (
+          <div className="text-center">
+            <button
+              onClick={getPersonalizedRecommendations}
+              disabled={loading}
+              className="bg-gradient-to-r from-purple-500 to-blue-500 text-white px-8 py-4 rounded-xl font-bold text-lg hover:from-purple-600 hover:to-blue-600 transition-all duration-200 disabled:opacity-50 mb-8"
+            >
+              {loading ? '🔄 Analyzing...' : '✨ Get AI Recommendations'}
+            </button>
+
+            {recommendations && (
+              <div className="bg-white rounded-xl shadow-lg p-8 text-left">
+                <h3 className="text-2xl font-bold mb-6 text-center">🎯 Your Personalized Learning Plan</h3>
+                
+                <div className="grid md:grid-cols-2 gap-6 mb-6">
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <h4 className="font-bold text-blue-800 mb-2">📊 Your Stats</h4>
+                    <div className="space-y-1 text-sm">
+                      <p>Completed Lessons: {recommendations.user_stats.completed_lessons}</p>
+                      <p>Average Score: {recommendations.user_stats.avg_score.toFixed(1)}%</p>
+                      <p>Total XP: {recommendations.user_stats.total_xp}</p>
+                      <p>Preferred Subjects: {recommendations.user_stats.preferred_subjects.join(', ') || 'Exploring'}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-green-50 p-4 rounded-lg">
+                    <h4 className="font-bold text-green-800 mb-2">🎯 Recommendation Quality</h4>
+                    <div className="text-sm">
+                      <p>Generated: {new Date(recommendations.generated_at).toLocaleDateString()}</p>
+                      <p>Based on your learning patterns and performance</p>
+                      <p>Personalized for optimal progress</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 p-6 rounded-lg">
+                  <h4 className="font-bold mb-4">🤖 AI Recommendations:</h4>
+                  <div className="prose prose-sm max-w-none">
+                    <pre className="whitespace-pre-wrap text-sm bg-white p-4 rounded border">
+                      {recommendations.recommendations}
+                    </pre>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Learning Path Tab */}
+        {activeTab === 'learning-path' && (
+          <div className="text-center">
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Choose Subject Area:</label>
+              <select
+                value={selectedSubject}
+                onChange={(e) => setSelectedSubject(e.target.value)}
+                className="border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="computer_science">💻 Computer Science</option>
+                <option value="general_math">🔢 Mathematics</option>
+                <option value="english">📚 English Literature</option>
+                <option value="science">🔬 Science</option>
+                <option value="history">📜 History</option>
+              </select>
+            </div>
+            
+            <button
+              onClick={() => generateLearningPath(selectedSubject)}
+              disabled={loading}
+              className="bg-gradient-to-r from-green-500 to-teal-500 text-white px-8 py-4 rounded-xl font-bold text-lg hover:from-green-600 hover:to-teal-600 transition-all duration-200 disabled:opacity-50 mb-8"
+            >
+              {loading ? '🔄 Creating Path...' : '🗺️ Generate Learning Path'}
+            </button>
+
+            {learningPath && (
+              <div className="bg-white rounded-xl shadow-lg p-8 text-left">
+                <h3 className="text-2xl font-bold mb-6 text-center">
+                  🗺️ Your {selectedSubject.replace('_', ' ').toUpperCase()} Learning Path
+                </h3>
+                
+                <div className="grid md:grid-cols-3 gap-4 mb-6">
+                  <div className="bg-purple-50 p-4 rounded-lg text-center">
+                    <h4 className="font-bold text-purple-800">📈 Subject</h4>
+                    <p className="text-sm">{learningPath.subject_area.replace('_', ' ')}</p>
+                  </div>
+                  <div className="bg-blue-50 p-4 rounded-lg text-center">
+                    <h4 className="font-bold text-blue-800">🎯 Competency</h4>
+                    <p className="text-sm">{learningPath.current_competency.toFixed(1)}%</p>
+                  </div>
+                  <div className="bg-green-50 p-4 rounded-lg text-center">
+                    <h4 className="font-bold text-green-800">⏱️ Generated</h4>
+                    <p className="text-sm">Just now</p>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 p-6 rounded-lg">
+                  <h4 className="font-bold mb-4">🤖 AI-Generated Learning Path:</h4>
+                  <div className="prose prose-sm max-w-none">
+                    <pre className="whitespace-pre-wrap text-sm bg-white p-4 rounded border max-h-96 overflow-y-auto">
+                      {learningPath.learning_path}
+                    </pre>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
   const [currentView, setCurrentView] = useState('dashboard');
   const [demoUser] = useState({
     first_name: 'Alex',
