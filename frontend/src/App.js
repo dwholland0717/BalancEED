@@ -1981,6 +1981,12 @@ const DemoPage = () => {
             </div>
           </div>
         )}
+
+        {/* AI Magic View - NEW */}
+        {currentView === 'ai_magic' && <AIRecommendationsDemo simulateEarnCoins={simulateEarnCoins} />}
+
+        {/* Social View - NEW */}
+        {currentView === 'social' && <YouTubeMotivationDemo simulateEarnCoins={simulateEarnCoins} />}
       </main>
 
       {/* Bottom CTA */}
